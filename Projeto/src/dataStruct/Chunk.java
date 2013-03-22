@@ -9,12 +9,12 @@ public class Chunk {
 		this.data = data;
 	}
 
-	byte[] getChunkNo(){
+	public byte[] getChunkNo(){
 		//TODO devolver codificado em ASCII
 		return null;
 	};
 	
-	byte[] getData(){
+	public byte[] getData(){
 		return data;
 	};
 }
