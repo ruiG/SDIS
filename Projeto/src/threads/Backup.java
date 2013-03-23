@@ -41,7 +41,9 @@ public class Backup implements Runnable{
 				backupSocket.send(pack);
 				Random r = new Random();
 				Thread.sleep(r.nextInt(500)+ 500);
-			} catch (InterruptedException | IOException e1) {
+			}  catch (InterruptedException e2) {
+				e2.printStackTrace();
+			}catch(IOException e1){
 				e1.printStackTrace();
 			}
 		}	
