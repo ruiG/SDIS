@@ -53,7 +53,7 @@ public class Backup implements Runnable{
 	public byte[] PutCkMessage(Chunk ck, int repdegree){
 		String body = ck.getData().toString();		
 		String repD = Integer.toString(repdegree);
-		String fileId = ck.getFileID();
+		String fileId = ck.getFileId();
 		String version = MFSS._VERSION;
 		String chN = ck.getChunkNo().toString();
 		byte[] message = ("PUTCHUNK "+version+" "+fileId+" "+chN+" "+repD+" "+MFSS._CRLF+MFSS._CRLF+body).getBytes();
@@ -72,7 +72,4 @@ public class Backup implements Runnable{
 	public void setmCastGroupAddress(InetAddress mCastGroupAddress) {
 		this.backupGroupAddress = mCastGroupAddress;
 	}
-
-
-
 }
