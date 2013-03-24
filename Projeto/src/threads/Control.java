@@ -7,18 +7,13 @@ import java.net.MulticastSocket;
 import java.util.Random;
 
 public class Control implements Runnable{
-	private static final int _TTL = 1;
-	private  int restorePort;
 	private  int controlPort;
-	private  int backupPort;
-	private InetAddress mCastGroupAddress;
+	private InetAddress controlGroupAddress;
 	private MulticastSocket controlSocket;
 	
-	public Control(InetAddress mCastGroupAddress, Integer restorePort, Integer controlPort, Integer backupPort) throws IOException{
-		this.mCastGroupAddress = mCastGroupAddress;
-		this.restorePort = restorePort;
-		this.controlPort = controlPort;
-		this.backupPort = backupPort;	
+	public Control(InetAddress mCastGroupAddress,Integer controlPort) throws IOException{
+		this.controlGroupAddress = mCastGroupAddress;	
+		this.controlPort = controlPort;		
 		controlSocket = new MulticastSocket(this.controlPort);
 		this.joinMCGroup();
 	}	
@@ -43,20 +38,20 @@ public class Control implements Runnable{
 	}
 	
 	protected void joinMCGroup() throws IOException{
-		controlSocket.joinGroup(mCastGroupAddress);
+		controlSocket.joinGroup(controlGroupAddress);
 	}
 
 	//******************Getters
 	
 	public InetAddress getmCastGroupAddress() {
-		return mCastGroupAddress;
+		return controlGroupAddress;
 	}
 
 	
 	//******************Setters 
 	
 	public void setmCastGroupAddress(InetAddress mCastGroupAddress) {
-		this.mCastGroupAddress = mCastGroupAddress;
+		this.controlGroupAddress = mCastGroupAddress;
 	}
 
 	

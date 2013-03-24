@@ -6,19 +6,16 @@ import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.util.Random;
 
+import cli.MFSS;
+
 public class Restore implements Runnable{
-	private static final int _TTL = 1;
 	private  Integer restorePort;
-	private  Integer controlPort;
-	private  Integer backupPort;
-	private InetAddress mCastGroupAddress;
+	private InetAddress restoreGroupAddress;
 	private MulticastSocket controlSocket;
 
-	public Restore(InetAddress mCastGroupAddress, Integer restorePort, Integer controlPort, Integer backupPort) throws IOException{
-		this.mCastGroupAddress = mCastGroupAddress;
-		this.restorePort = restorePort;
-		this.controlPort = controlPort;
-		this.backupPort = backupPort;		  
+	public Restore(InetAddress mCastGroupAddress, Integer restorePort) throws IOException{
+		this.restoreGroupAddress = mCastGroupAddress;
+		this.restorePort = restorePort;	  
 		controlSocket = new MulticastSocket(this.restorePort);
 	}	
 
@@ -30,11 +27,11 @@ public class Restore implements Runnable{
 			byte[] sdata = message.getBytes();
 			DatagramPacket pack;
 			try {
-				pack = new DatagramPacket(sdata, sdata.length,mCastGroupAddress, controlPort);
-				controlSocket.setTimeToLive(_TTL);
+				pack = new DatagramPacket(sdata, sdata.length,restoreGroupAddress, restorePort);
+				controlSocket.setTimeToLive(MFSS._TTL);
 				controlSocket.send(pack);
 				Random r = new Random();
-				Thread.sleep(r.nextInt(500)+ 500);
+				Thread.sleep(r.nextInt(MFSS._RANDOMSLEEPTIME));
 			} catch (InterruptedException | IOException e1) {
 				e1.printStackTrace();
 			}
@@ -42,20 +39,20 @@ public class Restore implements Runnable{
 	}
 
 	protected void joinMCGroup() throws IOException{
-		controlSocket.joinGroup(mCastGroupAddress);
+		controlSocket.joinGroup(restoreGroupAddress);
 	}
 
 	//******************Getters
 
 	public InetAddress getmCastGroupAddress() {
-		return mCastGroupAddress;
+		return restoreGroupAddress;
 	}
 
 
 	//******************Setters 
 
 	public void setmCastGroupAddress(InetAddress mCastGroupAddress) {
-		this.mCastGroupAddress = mCastGroupAddress;
+		this.restoreGroupAddress = mCastGroupAddress;
 	}
 
 
