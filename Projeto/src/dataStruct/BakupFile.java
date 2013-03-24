@@ -3,15 +3,9 @@ package dataStruct;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.nio.channels.SeekableByteChannel;
-import java.nio.file.Files;
-import java.nio.file.OpenOption;
-import java.nio.file.StandardOpenOption;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 
 public class BakupFile {
-	private ArrayList<Chunk> Chunks;
 	String name;
 	String filename; //SHA256 generated
 	long length;
@@ -34,7 +28,7 @@ public class BakupFile {
 		ArrayList<Chunk> arr = new ArrayList<Chunk>();
 		arr.clear();
 		try{		
-			RandomAccessFile f= new RandomAccessFile(name, "r");
+			RandomAccessFile f = new RandomAccessFile(name, "r");
 			nrchunks=(int)(length/64000);
 			long rest=length%64000;
 			
@@ -47,21 +41,21 @@ public class BakupFile {
 				byte c[]= new byte[(int) rest];
 				f.read(c);
 				arr.add(new Chunk(nrchunks, filename, c));
+				f.close();
 			}
 			else{
 				arr.add(new Chunk(nrchunks, filename, null));
+				f.close();
 			}	
 		}catch(IOException e){
 				return null;
 			}
+	
 		return arr;
 	}
 	
 	public void generateFileName(){
-		Hash h=new Hash(name,Long.toString(lastmodified), Long.toString(length));
-		filename=h.getValue();
-		
-		//TODO  generate FileName
+		filename = Hash.calc(name,Long.toString(lastmodified), Long.toString(length));	
 	}
 	
 	public String getFileName(){

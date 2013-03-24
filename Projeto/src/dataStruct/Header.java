@@ -1,38 +1,36 @@
 package dataStruct;
 
 public class Header{
-		
-		public String header="";
-		
-		public Header(String messageType, 
-					  char versionMajor, 
-					  char versionMinor, 
-					  String fileId, 
-					  String chunkID, 
-					  char replicationDeg){
-					  
-			header=messageType+ " " + versionMajor + "." + versionMinor +  " " + fileId + " " + chunkID;
-			if (replicationDeg != 'N'){
-				header+= " " + replicationDeg;	
-			} 
-			header+="\0x0D\0x0A";
-			//Add a empty line
-			header+="\0x0D\0x0A";
-		}
-		
-		public Header(String messageType, 
-					  char versionMajor, 
-					  char versionMinor, 
-					  String fileId, 
-					  String chunkID){
-					  	this(messageType, versionMajor, versionMinor, fileId, chunkID,'N');
-					  }
-		
-		public Header(String messageType, String fileId){
-			header=messageType + " " + fileId + "\n\r\n\r";
-		}
-		
-		public String get(){
-			return header;
-		}
+
+	private static final String _CRLF = "\0x0D\0x0A";
+
+	public static String getHeader(String messageType, char versionMajor, char versionMinor, String fileId, String chunkNo, char replicationDeg, byte[] body){
+		String header = "";		
+		header=messageType+ " " + versionMajor + "." + versionMinor +  " " + fileId + " " + chunkNo + " "+ replicationDeg;	
+		header+=_CRLF+_CRLF;		
+		header+=body.toString();
+		return header;
+	}
+	
+	public static String getHeader(String messageType, char versionMajor, char versionMinor, String fileId, String chunkNo, byte[] body){
+		String header = "";
+		header=messageType+ " " + versionMajor + "." + versionMinor +  " " + fileId + " " + chunkNo;
+		header+=_CRLF+_CRLF;
+		header+=body.toString();
+		return header;
+	}
+	
+	public static String getHeader(String messageType, char versionMajor, char versionMinor, String fileId, String chunkNo){
+		String header = "";
+		header=messageType+ " " + versionMajor + "." + versionMinor +  " " + fileId + " " + chunkNo;
+		header+=_CRLF+_CRLF;	
+		return header;
+	}
+	
+	public static String getHeader(String messageType, String fileId){
+		String header = "";
+		header=messageType+ " " + fileId;
+		header+=_CRLF+_CRLF;
+		return header;
+	}
 }

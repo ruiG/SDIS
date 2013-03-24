@@ -4,38 +4,34 @@ import dataStruct.Header;
 
 public class Message{
 
-	public char VersionMajor='1';
-	public char VersionMinor='0';
-	
-	public Message(){
-	}
-	public String PUTCHUNK(String fileId, String chunkID, 
-			  	  char replicationDeg, String body){
-		Header h= new Header("PUTCHUNK", VersionMajor,VersionMinor, fileId, chunkID, replicationDeg );
-		return h.get() + body;
-	}
-	public String STORED(String fileId, String chunkID){
-		Header h= new Header("STORED", VersionMajor,VersionMinor, fileId, chunkID);
-		return h.get();
-	}
-	public String GETCHUNK(String fileId, String chunkID){
-		Header h= new Header("GETCHUNK", VersionMajor,VersionMinor, fileId, chunkID);
-		return h.get();
+	public static char versionMajor ='1';
+	public static char versionMinor ='0';
+
+	public static String PUTCHUNK(String fileId, String chunkNo, char replicationDeg, byte[] body){
+		return Header.getHeader("PUTCHUNK", versionMajor, versionMinor, fileId, chunkNo, replicationDeg, body);
 	}
 	
-	public String CHUNK(String fileId, String chunkID, String body){
-		Header h= new Header("CHUNK", VersionMajor,VersionMinor, fileId, chunkID);
-		return h.get() + body;
+	public static String STORED(String fileId, String chunkNo){
+		return Header.getHeader("STORED", versionMajor, versionMinor, fileId, chunkNo);
 	}
-	public String DELETE(String fileId){
-		Header h= new Header("DELETE", fileId);
-		return h.get();
-	}
-	public String REMOVED(String fileId, String chunkID){
-		Header h= new Header("REMOVED", VersionMajor,VersionMinor, fileId, chunkID);
-		return h.get();
+	
+	public static String GETCHUNK(String fileId, String chunkNo){
+		return Header.getHeader("GETCHUNK", versionMajor, versionMinor, fileId, chunkNo);
 	}
 
+	public static String CHUNK(String fileId, String chunkNo, byte[] body){
+		return Header.getHeader("CHUNK", versionMajor, versionMinor, fileId, chunkNo, body);
+	}
 	
+	public static String REMOVED(String fileId, String chunkNo){
+		return Header.getHeader("REMOVED", versionMajor, versionMinor, fileId, chunkNo);
+	}
 	
+	public static String DELETE(String fileId){
+		return Header.getHeader("DELETE", fileId);
+	}
+	
+
+
+
 }

@@ -6,20 +6,17 @@ import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.util.Random;
 
-public class Restore implements Runnable{
-	private static final int _TTL = 1;
-	private  Integer restorePort;
-	private  Integer controlPort;
-	private  Integer backupPort;
-	private InetAddress mCastGroupAddress;
-	private MulticastSocket controlSocket;
+import cli.MFSS;
 
-	public Restore(InetAddress mCastGroupAddress, Integer restorePort, Integer controlPort, Integer backupPort) throws IOException{
+public class Restore implements Runnable{
+	private  Integer restorePort;
+	private InetAddress mCastGroupAddress;
+	private MulticastSocket restoreSocket;
+
+	public Restore(InetAddress mCastGroupAddress, Integer restorePort) throws IOException{
 		this.mCastGroupAddress = mCastGroupAddress;
-		this.restorePort = restorePort;
-		this.controlPort = controlPort;
-		this.backupPort = backupPort;		  
-		controlSocket = new MulticastSocket(this.restorePort);
+		this.restorePort = restorePort;		  
+		restoreSocket = new MulticastSocket(this.restorePort);
 	}	
 
 	@Override
@@ -30,11 +27,11 @@ public class Restore implements Runnable{
 			byte[] sdata = message.getBytes();
 			DatagramPacket pack;
 			try {
-				pack = new DatagramPacket(sdata, sdata.length,mCastGroupAddress, controlPort);
-				controlSocket.setTimeToLive(_TTL);
-				controlSocket.send(pack);
+				pack = new DatagramPacket(sdata, sdata.length,mCastGroupAddress, restorePort);
+				restoreSocket.setTimeToLive(MFSS._TTL);
+				restoreSocket.send(pack);
 				Random r = new Random();
-				Thread.sleep(r.nextInt(500)+ 500);
+				Thread.sleep(r.nextInt(MFSS._RANDOMSLEEPTIME));
 			} catch (InterruptedException e2) {
 				e2.printStackTrace();
 			}catch(IOException e1){
@@ -44,7 +41,7 @@ public class Restore implements Runnable{
 	}
 
 	protected void joinMCGroup() throws IOException{
-		controlSocket.joinGroup(mCastGroupAddress);
+		restoreSocket.joinGroup(mCastGroupAddress);
 	}
 
 	//******************Getters

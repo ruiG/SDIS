@@ -59,6 +59,33 @@ public class Backup implements Runnable{
 		byte[] message = ("PUTCHUNK "+version+" "+fileId+" "+chN+" "+repD+" "+MFSS._CRLF+MFSS._CRLF+body).getBytes();
 		return message;	
 	}
+	
+/*
+	private void parsePUTCHUNK(String fileID, String chunknr, byte body[]){
+		Chunk c=new Chunk(Integer.parseInt(chunknr), fileID,body);
+		if(true){// Verificar se há espaço no disco para gravar chunk. 
+			c.save();
+			Message m= new Message();
+			String toSend=m.STORED(fileID, chunknr);
+			// e enviar mensagem STORED
+		}
+	}
+	
+	private void parseGETCHUNK(String fileID, String chunknr){
+		Chunk c=new Chunk(Integer.parseInt(chunknr), fileID);
+		if (! c.load()){
+			// Não temos este chunk localmente.
+			return;
+		}
+		Message m=new Message();
+		String toSend=m.CHUNK(fileID,chunknr,c.getData().toString());
+		// e enviar mensagem CHUNK
+	}
+	
+	private void parseDELETE(String fileID){
+		// Procurar na directoria todos os ficheiros começados por "fileID" e apagá-los.		
+	
+	}*/
 
 	//******************Getters
 

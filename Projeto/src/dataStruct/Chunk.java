@@ -52,7 +52,7 @@ public class Chunk {
 		try{		
 			byte [] b= new byte[1024];
 			ByteBuffer body= ByteBuffer.allocate(64000);
-			RandomAccessFile f= new RandomAccessFile(fileId + num, "r");
+			RandomAccessFile f = new RandomAccessFile(fileId + num, "r");
 			
 			while(f.read(b)== 1024){
 				body.put(b);
@@ -62,6 +62,7 @@ public class Chunk {
 			size=body.position();
 			body.flip();
 			body.get(data,0,size);
+			f.close();
 			return true;
 		}catch(IOException e){
 				return false;
