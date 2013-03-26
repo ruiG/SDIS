@@ -8,7 +8,8 @@ public class MFSS {
 	public static final int _RANDOMSLEEPTIME = 401;
 	public static final int _TTL = 1;	
 	public static final byte _CRLF = (byte) 0xDA;
-	public static final String _VERSION = "0.1";
+	public static final char _VERSIONMAJOR = '1';
+	public static final char _VERSIONMINOR = '0';
 	private static final int _MDRPORT = 3002;
 	private static final int _MCPORT = 3000;
 	private static final int _MDBPORT = 3001;

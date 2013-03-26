@@ -10,11 +10,13 @@ public class BakupFile {
 	String filename; //SHA256 generated
 	long length;
 	long lastmodified;
+	int repDeg;
 	int nrchunks;
 	ArrayList<Chunk> chunks;
 	
-	public BakupFile(String name) {
+	public BakupFile(String name, int repDeg) {
 		this.name = name;
+		this.repDeg = repDeg;
 		File file=new File(name);
 		lastmodified=file.lastModified();
 		length=file.length();
@@ -35,16 +37,16 @@ public class BakupFile {
 			byte b[]= new byte[64000];
 			for (int i=0;i<nrchunks;i++){
 				f.read(b);
-				arr.add(new Chunk(i, filename, b));
+				arr.add(new Chunk(i, filename, b, repDeg));
 			}
 			if (rest>0){
 				byte c[]= new byte[(int) rest];
 				f.read(c);
-				arr.add(new Chunk(nrchunks, filename, c));
+				arr.add(new Chunk(nrchunks, filename, c, repDeg));
 				f.close();
 			}
 			else{
-				arr.add(new Chunk(nrchunks, filename, null));
+				arr.add(new Chunk(nrchunks, filename, null, repDeg));
 				f.close();
 			}	
 		}catch(IOException e){
@@ -88,7 +90,7 @@ public class BakupFile {
 		chunks.clear();
 	}
 	public void AddChunkForRenegeration(Chunk c){
-		chunks.add(c.num, c);
+		chunks.add(c.getChunkNo(), c);
 	}
 	
 }

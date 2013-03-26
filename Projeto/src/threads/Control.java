@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 
+import dataStruct.Chunk;
+import dataStruct.Message;
+
 public class Control implements Runnable{
 	private  int controlPort;
 	private InetAddress mCastGroupAddress;
@@ -28,6 +31,11 @@ public class Control implements Runnable{
 			posinit++;
 		}
 		return data.substring(posinit,posfinal);
+	}
+	
+	public static byte[] CkMessage(Chunk ck, int repdegree){	
+		byte[] message = Message.CHUNK(ck.getFileId(), ck.getChunkNoAsString(), ck.getData()).getBytes();
+		return message;	
 	}
 	
 
@@ -100,6 +108,8 @@ public class Control implements Runnable{
 			
 		}*/
 	}
+	
+	
 	
 
 	protected void joinMCGroup() throws IOException{

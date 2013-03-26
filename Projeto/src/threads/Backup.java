@@ -9,6 +9,7 @@ import java.util.Random;
 import cli.MFSS;
 
 import dataStruct.Chunk;
+import dataStruct.Message;
 
 public class Backup implements Runnable{
 
@@ -50,17 +51,20 @@ public class Backup implements Runnable{
 		}
 	}
 
-	public byte[] PutCkMessage(Chunk ck, int repdegree){
-		String body = ck.getData().toString();		
-		String repD = Integer.toString(repdegree);
-		String fileId = ck.getFileId();
-		String version = MFSS._VERSION;
-		String chN = ck.getChunkNo().toString();
-		byte[] message = ("PUTCHUNK "+version+" "+fileId+" "+chN+" "+repD+" "+MFSS._CRLF+MFSS._CRLF+body).getBytes();
+	public byte[] PutCkMessage(Chunk ck, int repdegree){	
+		byte[] message = Message.PUTCHUNK(ck.getFileId(), ck.getChunkNoAsString(), ck.getRepDegAsChar(), ck.getData()).getBytes();
 		return message;	
 	}
-	
-/*
+
+
+	public byte[] StrMessage(Chunk ck, int repdegree){	
+		byte[] message = Message.STORED(ck.getFileId(), ck.getChunkNoAsString()).getBytes();
+		return message;	
+	}
+
+
+
+	/*
 	private void parsePUTCHUNK(String fileID, String chunknr, byte body[]){
 		Chunk c=new Chunk(Integer.parseInt(chunknr), fileID,body);
 		if(true){// Verificar se há espaço no disco para gravar chunk. 
@@ -70,7 +74,7 @@ public class Backup implements Runnable{
 			// e enviar mensagem STORED
 		}
 	}
-	
+
 	private void parseGETCHUNK(String fileID, String chunknr){
 		Chunk c=new Chunk(Integer.parseInt(chunknr), fileID);
 		if (! c.load()){
@@ -81,10 +85,10 @@ public class Backup implements Runnable{
 		String toSend=m.CHUNK(fileID,chunknr,c.getData().toString());
 		// e enviar mensagem CHUNK
 	}
-	
+
 	private void parseDELETE(String fileID){
 		// Procurar na directoria todos os ficheiros começados por "fileID" e apagá-los.		
-	
+
 	}*/
 
 	//******************Getters
