@@ -13,10 +13,12 @@ public class MFSS {
 	private static final int _MDRPORT = 3002;
 	private static final int _MCPORT = 3000;
 	private static final int _MDBPORT = 3001;
+	public static boolean debugmode;
 
 	public static void main(String args[]){
 		InetAddress controlGroupAddress;
 		InetAddress restoreGroupAddress;
+		debugmode = true;
 		
 		try {
 			controlGroupAddress = InetAddress.getByName("224.0.0.1");

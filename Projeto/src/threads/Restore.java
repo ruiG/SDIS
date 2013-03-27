@@ -9,14 +9,14 @@ import java.util.Random;
 import cli.MFSS;
 
 public class Restore implements Runnable{
-	private  Integer restorePort;
-	private InetAddress mCastGroupAddress;
+	private static int restorePort;
+	private static InetAddress restoreGroupAddress;
 	private MulticastSocket restoreSocket;
 
 	public Restore(InetAddress mCastGroupAddress, Integer restorePort) throws IOException{
-		this.mCastGroupAddress = mCastGroupAddress;
-		this.restorePort = restorePort;		  
-		restoreSocket = new MulticastSocket(this.restorePort);
+		Restore.restoreGroupAddress = mCastGroupAddress;
+		Restore.restorePort = restorePort;		  
+		restoreSocket = new MulticastSocket(Restore.restorePort);
 	}	
 
 	@Override
@@ -27,7 +27,7 @@ public class Restore implements Runnable{
 			byte[] sdata = message.getBytes();
 			DatagramPacket pack;
 			try {
-				pack = new DatagramPacket(sdata, sdata.length,mCastGroupAddress, restorePort);
+				pack = new DatagramPacket(sdata, sdata.length,restoreGroupAddress, restorePort);
 				restoreSocket.setTimeToLive(MFSS._TTL);
 				restoreSocket.send(pack);
 				Random r = new Random();
@@ -41,21 +41,29 @@ public class Restore implements Runnable{
 	}
 
 	protected void joinMCGroup() throws IOException{
-		restoreSocket.joinGroup(mCastGroupAddress);
+		restoreSocket.joinGroup(restoreGroupAddress);
 	}
 
 	//******************Getters
-
-	public InetAddress getmCastGroupAddress() {
-		return mCastGroupAddress;
+	
+	public static InetAddress getmCastGroupAddress() {
+		return restoreGroupAddress;
 	}
 
-
+	public static int getControlPort() {
+		return restorePort;
+	}
+	
 	//******************Setters 
 
-	public void setmCastGroupAddress(InetAddress mCastGroupAddress) {
-		this.mCastGroupAddress = mCastGroupAddress;
+	public void setControlPort(int restorePort) {
+		Restore.restorePort = restorePort;
 	}
+
+	public void setmCastGroupAddress(InetAddress mCastGroupAddress) {
+		Restore.restoreGroupAddress = mCastGroupAddress;
+	}
+
 
 
 }

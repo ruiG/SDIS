@@ -1,21 +1,25 @@
 package threads;
 
 import java.io.IOException;
+import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
+import java.util.Random;
+
+import cli.MFSS;
 
 import dataStruct.Chunk;
 import dataStruct.Message;
 
 public class Control implements Runnable{
-	private  int controlPort;
-	private InetAddress mCastGroupAddress;
+	private static int controlPort;
+	private static InetAddress mCastGroupAddress;
 	private MulticastSocket controlSocket;
 	
 	public Control(InetAddress mCastGroupAddress,Integer controlPort) throws IOException{
-		this.mCastGroupAddress = mCastGroupAddress;
-		this.controlPort = controlPort;	
-		controlSocket = new MulticastSocket(this.controlPort);
+		Control.mCastGroupAddress = mCastGroupAddress;
+		Control.controlPort = controlPort;	
+		controlSocket = new MulticastSocket(Control.controlPort);
 		this.joinMCGroup();
 	}	
 	
@@ -60,7 +64,7 @@ public class Control implements Runnable{
 				body.put(sentence.getBytes());
 				
 				if(sentence.length()!=1024){
-					// Chegámos ao fim do chunk
+					// Chegï¿½mos ao fim do chunk
 					receivingbody=false;
 					int size=body.position();
 					body.flip();
@@ -109,24 +113,39 @@ public class Control implements Runnable{
 		}*/
 	}
 	
+	private void parsedGETCHUNK(String fileID, String chunknr){
+		Chunk c=new Chunk(Integer.parseInt(chunknr), fileID);
+		if (c.load()){
+			String toSend=Message.CHUNK(fileID,chunknr,c.getData());
+			Message.sendMessage(controlSocket, Restore.getmCastGroupAddress(), Restore.getControlPort(), toSend.getBytes());
+			}
+		
+	}
 	
-	
-
 	protected void joinMCGroup() throws IOException{
 		controlSocket.joinGroup(mCastGroupAddress);
 	}
 
 	//******************Getters
 	
-	public InetAddress getmCastGroupAddress() {
+	public static InetAddress getmCastGroupAddress() {
 		return mCastGroupAddress;
 	}
 
+	public static int getControlPort() {
+		return controlPort;
+	}
 	
 	//******************Setters 
-	
-	public void setmCastGroupAddress(InetAddress mCastGroupAddress) {
-		this.mCastGroupAddress = mCastGroupAddress;
+
+	public void setControlPort(int controlPort) {
+		Control.controlPort = controlPort;
 	}
+
+	public void setmCastGroupAddress(InetAddress mCastGroupAddress) {
+		Control.mCastGroupAddress = mCastGroupAddress;
+	}
+
+
 
 }

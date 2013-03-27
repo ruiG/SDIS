@@ -18,10 +18,10 @@ public class Chunk {
 		this.size = data.length;
 		this.fileId=fileId;
 	}
-	public Chunk(int chunkNo, String fileId, int repDeg){
+	public Chunk(int chunkNo, String fileId){
 		this.chunkNo = chunkNo;
 		this.data = null;
-		this.repDeg = repDeg;
+		this.repDeg = 0;
 		this.size = 0;
 		this.fileId = fileId;
 	}
@@ -59,7 +59,7 @@ public class Chunk {
 	}
 	public void save(){
 		try{		
-			RandomAccessFile f= new RandomAccessFile(fileId + repDeg, "w");
+			RandomAccessFile f= new RandomAccessFile(fileId + chunkNo, "w");
 			f.write(data,0,size);
 			f.close();
 		}catch(IOException e){
@@ -71,7 +71,7 @@ public class Chunk {
 		try{		
 			byte [] b= new byte[1024];
 			ByteBuffer body= ByteBuffer.allocate(64000);
-			RandomAccessFile f = new RandomAccessFile(fileId + repDeg, "r");
+			RandomAccessFile f = new RandomAccessFile(fileId + chunkNo, "r");
 
 			while(f.read(b)== 1024){
 				body.put(b);

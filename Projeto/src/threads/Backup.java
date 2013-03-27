@@ -13,8 +13,8 @@ import dataStruct.Message;
 
 public class Backup implements Runnable{
 
-	private  int backupPort;
-	private InetAddress backupGroupAddress;
+	private static int backupPort;
+	private static InetAddress backupGroupAddress;
 	private MulticastSocket backupSocket;
 
 	public Backup(InetAddress mCastGroupAddress, Integer backupPort) throws IOException{
@@ -36,49 +36,34 @@ public class Backup implements Runnable{
 		}	
 	}
 
-	public void send(Chunk ck, int repdegree) {
-		byte[] sdata = PutCkMessage(ck, repdegree);
-		System.out.println("MDB Send:");
-		DatagramPacket pack;
-		try {
-			pack = new DatagramPacket(sdata, sdata.length,backupGroupAddress, backupPort);
-			backupSocket.setTimeToLive(MFSS._TTL);
-			backupSocket.send(pack);
-			Random r = new Random();
-			Thread.sleep(r.nextInt(MFSS._RANDOMSLEEPTIME));
-		} catch (InterruptedException | IOException e1) {
-			e1.printStackTrace();
-		}
-	}
-
-	public byte[] PutCkMessage(Chunk ck, int repdegree){	
-		byte[] message = Message.PUTCHUNK(ck.getFileId(), ck.getChunkNoAsString(), ck.getRepDegAsChar(), ck.getData()).getBytes();
-		return message;	
-	}
-
-
 	public byte[] StrMessage(Chunk ck, int repdegree){	
 		byte[] message = Message.STORED(ck.getFileId(), ck.getChunkNoAsString()).getBytes();
 		return message;	
 	}
 
-
-
-	/*
-	private void parsePUTCHUNK(String fileID, String chunknr, byte body[]){
-		Chunk c=new Chunk(Integer.parseInt(chunknr), fileID,body);
-		if(true){// Verificar se há espaço no disco para gravar chunk. 
+	
+	public static byte[] PutCkMessage(Chunk ck, int repdegree){	
+		byte[] message = Message.PUTCHUNK(ck.getFileId(), ck.getChunkNoAsString(), ck.getRepDegAsChar(), ck.getData()).getBytes();
+		return message;	
+	}
+	
+	private void parsePUTCHUNK(String fileID, String chunknr, byte body[], int repdeg){
+		Chunk c=new Chunk(Integer.parseInt(chunknr), fileID,body,repdeg);
+		if(true){//TODO Verificar se ha espaco no disco para gravar chunk. 
 			c.save();
-			Message m= new Message();
-			String toSend=m.STORED(fileID, chunknr);
-			// e enviar mensagem STORED
+			String toSend = Message.STORED(fileID, chunknr);
+			Message.sendMessage(backupSocket, Control.getmCastGroupAddress(), Control.getControlPort(), toSend.getBytes());
 		}
 	}
-
+	
+	
+	
+	
+	/*
 	private void parseGETCHUNK(String fileID, String chunknr){
 		Chunk c=new Chunk(Integer.parseInt(chunknr), fileID);
 		if (! c.load()){
-			// Não temos este chunk localmente.
+			// Nï¿½o temos este chunk localmente.
 			return;
 		}
 		Message m=new Message();
@@ -87,20 +72,25 @@ public class Backup implements Runnable{
 	}
 
 	private void parseDELETE(String fileID){
-		// Procurar na directoria todos os ficheiros começados por "fileID" e apagá-los.		
+		// Procurar na directoria todos os ficheiros comeï¿½ados por "fileID" e apagï¿½-los.		
 
 	}*/
 
-	//******************Getters
-
-	public InetAddress getmCastGroupAddress() {
+	public static InetAddress getmCastGroupAddress() {
 		return backupGroupAddress;
 	}
 
-
+	public static int getControlPort() {
+		return backupPort;
+	}
+	
 	//******************Setters 
 
+	public void setControlPort(int backupPort) {
+		Backup.backupPort = backupPort;
+	}
+
 	public void setmCastGroupAddress(InetAddress mCastGroupAddress) {
-		this.backupGroupAddress = mCastGroupAddress;
+		Backup.backupGroupAddress = mCastGroupAddress;
 	}
 }
