@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
+import java.nio.ByteBuffer;
 import java.util.Random;
 
 import cli.MFSS;
@@ -18,8 +19,8 @@ public class Backup implements Runnable{
 	private MulticastSocket backupSocket;
 
 	public Backup(InetAddress mCastGroupAddress, Integer backupPort) throws IOException{
-		this.backupGroupAddress = mCastGroupAddress;
-		this.backupPort = backupPort;
+		Backup.backupGroupAddress = mCastGroupAddress;
+		Backup.backupPort = backupPort;
 		backupSocket = new MulticastSocket(backupPort);
 		this.joinMCGroup();
 
@@ -31,8 +32,58 @@ public class Backup implements Runnable{
 
 	@Override
 	public void run() {
+		//TODO check for version
+		Boolean receivingbody=false;
+		ByteBuffer body= ByteBuffer.allocate(64000);
+
+		String command="", version="", fileID="", chunknr="", repldeg="";
+
 		while(true){
-			//TODO stuff...
+			byte[] receiveData = new byte[1024];
+			DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+			try {
+				backupSocket.receive(receivePacket);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			String sentence = new String( receivePacket.getData(),0,receivePacket.getLength());
+			System.out.println("RECEIVED: " + sentence);
+			if(receivingbody){
+				body.put(sentence.getBytes());
+				if(sentence.length()!=1024){
+					// Chegamos ao fim do chunk
+					receivingbody=false;
+					int size=body.position();
+					body.flip();
+					byte [] b= new byte[size];
+					body.get(b,0, size);
+					// COMANDO=PUTCHUNK
+					parsePUTCHUNK(fileID,chunknr,b,Integer.getInteger(repldeg));				
+				}
+				continue;
+			}
+			command=Message.parseCommandFromString(sentence, 1);
+			if(command.equals("PUTCHUNK")){
+				version=Message.parseCommandFromString(sentence,2);
+				fileID=Message.parseCommandFromString(sentence, 3);
+				chunknr=Message.parseCommandFromString(sentence, 4);
+				repldeg=Message.parseCommandFromString(sentence, 5);
+				int pos=sentence.indexOf(0x0A);
+				pos=sentence.indexOf(0x0A,pos+1)+1;
+				body.clear();
+				body.put(sentence.substring(pos, sentence.length()).getBytes());
+				if(sentence.length()==1024){
+					receivingbody=true;
+				}
+				else{
+					int size=body.position();
+					body.flip();
+					byte []b=new byte[size];
+					body.get(b,0,size);
+					parsePUTCHUNK(fileID,chunknr,b,Integer.getInteger(repldeg));
+				}
+				continue;
+			}
 		}	
 	}
 
@@ -41,12 +92,12 @@ public class Backup implements Runnable{
 		return message;	
 	}
 
-	
+
 	public static byte[] PutCkMessage(Chunk ck, int repdegree){	
 		byte[] message = Message.PUTCHUNK(ck.getFileId(), ck.getChunkNoAsString(), ck.getRepDegAsChar(), ck.getData()).getBytes();
 		return message;	
 	}
-	
+
 	private void parsePUTCHUNK(String fileID, String chunknr, byte body[], int repdeg){
 		Chunk c=new Chunk(Integer.parseInt(chunknr), fileID,body,repdeg);
 		if(true){//TODO Verificar se ha espaco no disco para gravar chunk. 
@@ -55,26 +106,6 @@ public class Backup implements Runnable{
 			Message.sendMessage(backupSocket, Control.getmCastGroupAddress(), Control.getControlPort(), toSend.getBytes());
 		}
 	}
-	
-	
-	
-	
-	/*
-	private void parseGETCHUNK(String fileID, String chunknr){
-		Chunk c=new Chunk(Integer.parseInt(chunknr), fileID);
-		if (! c.load()){
-			// N�o temos este chunk localmente.
-			return;
-		}
-		Message m=new Message();
-		String toSend=m.CHUNK(fileID,chunknr,c.getData().toString());
-		// e enviar mensagem CHUNK
-	}
-
-	private void parseDELETE(String fileID){
-		// Procurar na directoria todos os ficheiros come�ados por "fileID" e apag�-los.		
-
-	}*/
 
 	public static InetAddress getmCastGroupAddress() {
 		return backupGroupAddress;
@@ -83,7 +114,7 @@ public class Backup implements Runnable{
 	public static int getControlPort() {
 		return backupPort;
 	}
-	
+
 	//******************Setters 
 
 	public void setControlPort(int backupPort) {

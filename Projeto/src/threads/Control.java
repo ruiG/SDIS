@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
+import java.nio.ByteBuffer;
 import java.util.Random;
 
 import cli.MFSS;
@@ -23,20 +24,6 @@ public class Control implements Runnable{
 		this.joinMCGroup();
 	}	
 	
-	public String parseCommandFromString(String data, int indice){
-		int i=0;
-		int posinit=0;
-		int posfinal=0;
-		while(i<indice){
-			posinit=posfinal;
-			posfinal=data.indexOf(' ', posinit+1);
-		}
-		if (data.charAt(posinit)==' '){
-			posinit++;
-		}
-		return data.substring(posinit,posfinal);
-	}
-	
 	public static byte[] CkMessage(Chunk ck, int repdegree){	
 		byte[] message = Message.CHUNK(ck.getFileId(), ck.getChunkNoAsString(), ck.getData()).getBytes();
 		return message;	
@@ -45,9 +32,7 @@ public class Control implements Runnable{
 
 	@Override
 	public void run() {
-	/*	Boolean receivingbody=false;
-		ByteBuffer body= ByteBuffer.allocate(64000);
-	
+		//TODO Check for version
 		String command="", version="", fileID="", chunknr="", repldeg="";
 
 		while(true){
@@ -60,57 +45,23 @@ public class Control implements Runnable{
 			}
 			String sentence = new String( receivePacket.getData(),0,receivePacket.getLength());
 			System.out.println("RECEIVED: " + sentence);
-			if( receivingbody){
-				body.put(sentence.getBytes());
-				
-				if(sentence.length()!=1024){
-					// Cheg�mos ao fim do chunk
-					receivingbody=false;
-					int size=body.position();
-					body.flip();
-					byte [] b= new byte[size];
-					body.get(b,0, size);
-					// COMANDO=PUTCHUNK
-					parsePUTCHUNK(fileID, chunknr, b);				
-				}
-				continue;
-			}
-			command=parseCommandFromString(sentence, 1);
-			if(command.equals("PUTCHUNK")){
-				version=parseCommandFromString(sentence,2);
-				fileID=parseCommandFromString(sentence, 3);
-				chunknr=parseCommandFromString(sentence, 4);
-				repldeg=parseCommandFromString(sentence, 5);
-				int pos=sentence.indexOf(0x0A);
-				pos=sentence.indexOf(0x0A,pos+1)+1;
-				body.clear();
-				body.put(sentence.substring(pos, sentence.length()).getBytes());
-				if(sentence.length()==1024){
-					receivingbody=true;
-				}
-				else{
-					int size=body.position();
-					body.flip();
-					byte []b=new byte[size];
-					body.get(b,0,size);
-					parsePUTCHUNK(fileID, chunknr, b);
-				}
-				continue;
-			}
+			
+			command=Message.parseCommandFromString(sentence, 1);
+			
 			if(command.equals("GETCHUNK")){
-				version=parseCommandFromString(sentence,2);
-				fileID=parseCommandFromString(sentence, 3);
-				chunknr=parseCommandFromString(sentence, 4);
-				parseGETCHUNK(fileID, chunknr);
+				version=Message.parseCommandFromString(sentence,2);
+				fileID=Message.parseCommandFromString(sentence, 3);
+				chunknr=Message.parseCommandFromString(sentence, 4);
+				parsedGETCHUNK(fileID, chunknr);
 				continue;
 			}
 			if(command.equals("DELETE")){
-				fileID=parseCommandFromString(sentence, 2);
-				parseDELETE(fileID);
+				fileID=Message.parseCommandFromString(sentence, 2);
+				parsedDELETE(fileID);
 				continue;
 			}
 			
-		}*/
+		}
 	}
 	
 	private void parsedGETCHUNK(String fileID, String chunknr){
@@ -120,6 +71,9 @@ public class Control implements Runnable{
 			Message.sendMessage(controlSocket, Restore.getmCastGroupAddress(), Restore.getControlPort(), toSend.getBytes());
 			}
 		
+	}
+	private void parsedDELETE(String fileID){
+		//Chunk c = new Chunk()
 	}
 	
 	protected void joinMCGroup() throws IOException{

@@ -55,6 +55,20 @@ public class Message{
 			e1.printStackTrace();
 		}
 	}
+	
+	public static String parseCommandFromString(String data, int indice){
+		int i=0;
+		int posinit=0;
+		int posfinal=0;
+		while(i<indice){
+			posinit=posfinal;
+			posfinal=data.indexOf(' ', posinit+1);
+		}
+		if (data.charAt(posinit)==' '){
+			posinit++;
+		}
+		return data.substring(posinit,posfinal);
+	}
 
 
 }

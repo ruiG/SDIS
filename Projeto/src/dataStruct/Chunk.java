@@ -1,8 +1,11 @@
 package dataStruct;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.file.FileSystems;
+import java.nio.file.PathMatcher;
 
 public class Chunk {
 	private String fileId;
@@ -65,6 +68,10 @@ public class Chunk {
 		}catch(IOException e){
 			return;
 		}
+	}
+	
+	public static void deleteAllChunksFromFile(String fileID){
+		//TODO procurar todos os chunks com fileID no nome e eliminar.
 	}
 
 	public boolean load(){
