@@ -6,9 +6,9 @@ public class Header{
 
 	public static String getHeader(String messageType, char versionMajor, char versionMinor, String fileId, String chunkNo, char replicationDeg, byte[] body){
 		String header = "";		
-		header=messageType+ " " + versionMajor + "." + versionMinor +  " " + fileId + " " + chunkNo + " "+ replicationDeg;	
-		header+=_CRLF+_CRLF;		
-		header+=body.toString();
+		header=messageType+ " " + versionMajor + "." + versionMinor +  " " + fileId + " " + chunkNo + " "+ replicationDeg +_CRLF+_CRLF;		
+		String s = new String(body);
+		header+= s;
 		return header;
 	}
 	
@@ -16,14 +16,15 @@ public class Header{
 		String header = "";
 		header=messageType+ " " + versionMajor + "." + versionMinor +  " " + fileId + " " + chunkNo;
 		header+=_CRLF+_CRLF;
-		header+=body.toString();
+		String s = new String(body);
+		header+= s;
 		return header;
 	}
 	
 	public static String getHeader(String messageType, char versionMajor, char versionMinor, String fileId, String chunkNo){
 		String header = "";
 		header=messageType+ " " + versionMajor + "." + versionMinor +  " " + fileId + " " + chunkNo;
-		header+=_CRLF+_CRLF;	
+		header+=_CRLF+_CRLF;
 		return header;
 	}
 	

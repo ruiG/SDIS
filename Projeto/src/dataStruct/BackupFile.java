@@ -1,11 +1,21 @@
 package dataStruct;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.io.Serializable;
+import java.net.InetAddress;
+import java.net.MulticastSocket;
 import java.util.ArrayList;
 
-public class BakupFile {
+public class BackupFile implements Serializable{
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	
 	String name;
 	String filename; //SHA256 generated
 	long length;
@@ -14,7 +24,7 @@ public class BakupFile {
 	int nrchunks;
 	ArrayList<Chunk> chunks;
 	
-	public BakupFile(String name, int repDeg) {
+	public BackupFile(String name, int repDeg) {
 		this.name = name;
 		this.repDeg = repDeg;
 		File file=new File(name);
@@ -25,7 +35,7 @@ public class BakupFile {
 		chunks.clear();
 	}
 
-	public ArrayList<Chunk> generateChunks(){
+	public boolean generateChunks(){
 		
 		ArrayList<Chunk> arr = new ArrayList<Chunk>();
 		arr.clear();
@@ -50,10 +60,39 @@ public class BakupFile {
 				f.close();
 			}	
 		}catch(IOException e){
-				return null;
+				e.printStackTrace();
+				return false;
 			}
+		chunks = arr;
+		return true;
+	}
 	
-		return arr;
+	public void saveChunks(){
+		for (int i = 0; i < chunks.size(); i++) {
+			chunks.get(i).save();
+		}
+	}
+	
+	public void loadChunks(){
+		int i = 0;
+		while(true){			
+			Chunk c = new Chunk(i, filename);
+			if(c.load()){
+				System.err.println(i);
+				chunks.add(c);
+			}
+			else{
+				break;
+			}
+		}
+	}
+	
+	public boolean sendChunks(MulticastSocket skt, InetAddress grpAddress, int port){
+		for (int i = 0; i < chunks.size(); i++) {
+			if(!chunks.get(i).sendChunk(skt, grpAddress, port))
+				return false;
+		}	
+		return true;				
 	}
 	
 	public void generateFileName(){
@@ -64,22 +103,24 @@ public class BakupFile {
 		return filename;
 	}
 	
+	
 	public void RegenerateFileFromChunks(){
 		if(chunks.size()!=nrchunks)
 			return;
 		try{		
-			RandomAccessFile f = new RandomAccessFile(name, "w");
+			File f = new File(name);
+			FileOutputStream outputStream = new FileOutputStream(f);
 			byte b[]= new byte[64000];
 			for (int i=0;i<nrchunks;i++){
 				b=chunks.get(i).getData();
-				f.write(b);
+				outputStream.write(b);
 			}
 			Chunk c= chunks.get(nrchunks);
 			byte d[]=c.getData();
 			if(d.length!=0){
-				f.write(d);
+				outputStream.write(d);
 			}
-			f.close();
+			outputStream.close();
 		}catch(IOException e){
 				return;
 			}

@@ -4,18 +4,14 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
-import java.nio.ByteBuffer;
-import java.util.Random;
-
-import cli.MFSS;
-
 import dataStruct.Chunk;
 import dataStruct.Message;
 
-public class Control implements Runnable{
+public class Control extends Thread{
 	private static int controlPort;
 	private static InetAddress mCastGroupAddress;
 	private MulticastSocket controlSocket;
+	volatile boolean finished = false; 
 	
 	public Control(InetAddress mCastGroupAddress,Integer controlPort) throws IOException{
 		Control.mCastGroupAddress = mCastGroupAddress;
@@ -29,13 +25,17 @@ public class Control implements Runnable{
 		return message;	
 	}
 	
+	public void stopMe(){
+	    finished = true;
+	}
+
 
 	@Override
 	public void run() {
 		//TODO Check for version
 		String command="", version="", fileID="", chunknr="", repldeg="";
 
-		while(true){
+		while(!finished){
 			byte[] receiveData = new byte[1024];
 			DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
 			try {
@@ -62,6 +62,7 @@ public class Control implements Runnable{
 			}
 			
 		}
+		controlSocket.close();
 	}
 	
 	private void parsedGETCHUNK(String fileID, String chunknr){

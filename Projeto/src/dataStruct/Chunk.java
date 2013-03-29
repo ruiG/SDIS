@@ -1,11 +1,19 @@
 package dataStruct;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.io.Serializable;
+import java.net.InetAddress;
+import java.net.MulticastSocket;
 import java.nio.ByteBuffer;
 
-public class Chunk {
+public class Chunk implements Serializable{
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	private String fileId;
 	private int repDeg;
 	private int size;
@@ -58,12 +66,22 @@ public class Chunk {
 	public int getSize(){
 		return size;
 	}
+	
+	public boolean sendChunk(MulticastSocket skt, InetAddress groupAddress, int port){		
+		String message = Message.PUTCHUNK(fileId, getChunkNoAsString(), getRepDegAsChar(), data);
+		Message.sendMessage(skt, groupAddress, port, message.getBytes());
+		return true;		
+	}
+	
 	public void save(){
-		try{		
-			RandomAccessFile f= new RandomAccessFile(fileId+"."+chunkNo, "w");
-			f.write(data,0,size);
-			f.close();
+		try{
+			System.out.println("saving chunk number: "+chunkNo);
+			File f = new File(fileId+"."+chunkNo);
+			FileOutputStream outputStream = new FileOutputStream(f);
+			outputStream.write(data);
+			outputStream.close();		
 		}catch(IOException e){
+			System.err.println("error saving file...");
 			return;
 		}
 	}
@@ -72,14 +90,13 @@ public class Chunk {
 		int i = 0;
 		while(true){
 			File f = new File(fileID+"."+i);
-			if(!f.exists()){
-				break;
-			}else{
+			if(f.exists()){
 				f.delete();
-			}		
+			}
+			i++;
 		}				
 	}
-
+	
 	public boolean load(){
 		try{		
 			byte [] b= new byte[1024];

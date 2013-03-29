@@ -5,18 +5,15 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.nio.ByteBuffer;
-import java.util.Random;
-
-import cli.MFSS;
-
 import dataStruct.Chunk;
 import dataStruct.Message;
 
-public class Backup implements Runnable{
+public class Backup extends Thread{
 
 	private static int backupPort;
 	private static InetAddress backupGroupAddress;
 	private MulticastSocket backupSocket;
+	volatile boolean finished = false;
 
 	public Backup(InetAddress mCastGroupAddress, Integer backupPort) throws IOException{
 		Backup.backupGroupAddress = mCastGroupAddress;
@@ -25,11 +22,14 @@ public class Backup implements Runnable{
 		this.joinMCGroup();
 
 	}
+	
+	public void stopMe(){
+	    finished = true;
+	}
 
 	protected void joinMCGroup() throws IOException{
 		backupSocket.joinGroup(backupGroupAddress);
 	}
-
 	@Override
 	public void run() {
 		//TODO check for version
@@ -38,7 +38,7 @@ public class Backup implements Runnable{
 
 		String command="", version="", fileID="", chunknr="", repldeg="";
 
-		while(true){
+		while(!finished){
 			byte[] receiveData = new byte[1024];
 			DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
 			try {
@@ -85,6 +85,7 @@ public class Backup implements Runnable{
 				continue;
 			}
 		}	
+		backupSocket.close();
 	}
 
 	public byte[] StrMessage(Chunk ck, int repdegree){	

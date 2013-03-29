@@ -1,6 +1,12 @@
 package cli;
 import java.net.InetAddress;
+import java.net.MulticastSocket;
+import java.util.ArrayList;
 
+import dataStruct.BackupFile;
+import dataStruct.Chunk;
+
+import threads.Backup;
 import threads.Control;
 import threads.Restore;
 
@@ -18,11 +24,13 @@ public class MFSS {
 	public static void main(String args[]){
 		InetAddress controlGroupAddress;
 		InetAddress restoreGroupAddress;
+		InetAddress backupGroupAddress;
 		debugmode = true;
 		
 		try {
 			controlGroupAddress = InetAddress.getByName("224.0.0.1");
-			restoreGroupAddress = InetAddress.getByName("224.0.0.1");
+			restoreGroupAddress = InetAddress.getByName("224.0.0.2");
+			backupGroupAddress = InetAddress.getByName("224.0.0.3");
 			
 			System.out.println("Starting M.F.S.S.");
 			Control c = new Control(controlGroupAddress,_MCPORT);
@@ -35,16 +43,36 @@ public class MFSS {
 			System.out.println("Restore object initialized with:");
 			System.out.println("\t "+"Restore group address: "+restoreGroupAddress.getHostAddress());
 			System.out.println("\t "+"MDRPORT: "+_MDRPORT);
+			
+			Backup b = new Backup(backupGroupAddress, _MDBPORT);
+			System.out.println("Backup object initialized with:");
+			System.out.println("\t "+"Backup group address: "+backupGroupAddress.getHostAddress());
+			System.out.println("\t "+"MDRPORT: "+_MDRPORT);
 		
 			
-			Thread ct = new Thread(c);
-			ct.start();
+			
+			c.start();
 			System.out.println("Control thread started...");
-			Thread rt = new Thread(r);
-			rt.start();
-			System.out.println("Restore thread started...");
+			b.start();
+			System.out.println("Backup thread started...");
 			
+			MulticastSocket sk = new MulticastSocket();
+			sk.joinGroup(InetAddress.getByName("224.0.0.3"));
+			BackupFile file = new BackupFile("image.jpg", 2);			
+			//if (file.generateChunks()) {
+				file.StartRestore();
+				file.loadChunks();
+				file.RegenerateFileFromChunks();
+				//file.sendChunks(sk, backupGroupAddress, _MDBPORT);
+				//System.out.println("File chunks sent...");
+			//}else{
+			//	System.err.println("Error creating chunks...");
+			//}
+			sk.close();
+			System.out.println("Ending...");
 			
+			c.stopMe();
+			b.stopMe();
 			
 		} catch (Exception e) {
 			e.printStackTrace();

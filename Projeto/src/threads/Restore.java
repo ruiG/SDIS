@@ -1,14 +1,10 @@
 package threads;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
-import java.util.Random;
 
-import cli.MFSS;
-
-public class Restore implements Runnable{
+public class Restore extends Thread{
 	private static int restorePort;
 	private static InetAddress restoreGroupAddress;
 	private MulticastSocket restoreSocket;

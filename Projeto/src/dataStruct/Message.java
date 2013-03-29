@@ -36,7 +36,7 @@ public class Message{
 		return Header.getHeader("DELETE", fileId);
 	}
 	
-	public static void sendMessage(MulticastSocket skt, InetAddress GroupAddress, int port, byte[] message) {
+	public static boolean sendMessage(MulticastSocket skt, InetAddress GroupAddress, int port, byte[] message) {
 		if(MFSS.debugmode){		
 			byte[] head = new byte[15];
 			for (int i = 0; i < 14; i++) {
@@ -51,8 +51,9 @@ public class Message{
 			skt.send(pack);
 			Random r = new Random();
 			Thread.sleep(r.nextInt(MFSS._RANDOMSLEEPTIME));
+			return true;
 		} catch (InterruptedException | IOException e1) {
-			e1.printStackTrace();
+			return false;
 		}
 	}
 	
