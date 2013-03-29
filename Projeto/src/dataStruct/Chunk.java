@@ -4,8 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
-import java.nio.file.FileSystems;
-import java.nio.file.PathMatcher;
 
 public class Chunk {
 	private String fileId;
@@ -62,7 +60,7 @@ public class Chunk {
 	}
 	public void save(){
 		try{		
-			RandomAccessFile f= new RandomAccessFile(fileId + chunkNo, "w");
+			RandomAccessFile f= new RandomAccessFile(fileId+"."+chunkNo, "w");
 			f.write(data,0,size);
 			f.close();
 		}catch(IOException e){
@@ -71,14 +69,22 @@ public class Chunk {
 	}
 	
 	public static void deleteAllChunksFromFile(String fileID){
-		//TODO procurar todos os chunks com fileID no nome e eliminar.
+		int i = 0;
+		while(true){
+			File f = new File(fileID+"."+i);
+			if(!f.exists()){
+				break;
+			}else{
+				f.delete();
+			}		
+		}				
 	}
 
 	public boolean load(){
 		try{		
 			byte [] b= new byte[1024];
 			ByteBuffer body= ByteBuffer.allocate(64000);
-			RandomAccessFile f = new RandomAccessFile(fileId + chunkNo, "r");
+			RandomAccessFile f = new RandomAccessFile(fileId+"."+chunkNo, "r");
 
 			while(f.read(b)== 1024){
 				body.put(b);

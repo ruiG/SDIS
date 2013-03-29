@@ -68,7 +68,7 @@ public class BakupFile {
 		if(chunks.size()!=nrchunks)
 			return;
 		try{		
-			RandomAccessFile f= new RandomAccessFile(name, "w");
+			RandomAccessFile f = new RandomAccessFile(name, "w");
 			byte b[]= new byte[64000];
 			for (int i=0;i<nrchunks;i++){
 				b=chunks.get(i).getData();
