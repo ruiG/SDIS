@@ -44,8 +44,8 @@ public class BackupFile implements Serializable{
 			nrchunks=(int)(length/64000);
 			long rest=length%64000;
 			
-			byte b[]= new byte[64000];
 			for (int i=0;i<nrchunks;i++){
+				byte b[]= new byte[64000];
 				f.read(b);
 				arr.add(new Chunk(i, filename, b, repDeg));
 			}
@@ -84,6 +84,7 @@ public class BackupFile implements Serializable{
 			else{
 				break;
 			}
+			i++;
 		}
 	}
 	
@@ -105,10 +106,10 @@ public class BackupFile implements Serializable{
 	
 	
 	public void RegenerateFileFromChunks(){
-		if(chunks.size()!=nrchunks)
+		if(chunks.size()!=nrchunks+1)
 			return;
 		try{		
-			File f = new File(name);
+			File f = new File("a"+name);
 			FileOutputStream outputStream = new FileOutputStream(f);
 			byte b[]= new byte[64000];
 			for (int i=0;i<nrchunks;i++){
@@ -122,16 +123,12 @@ public class BackupFile implements Serializable{
 			}
 			outputStream.close();
 		}catch(IOException e){
-				return;
-			}
-		
-		
+			System.err.println("Error regenerating file...");
+		return;
+		}		
 	}
 	public void StartRestore(){
 		chunks.clear();
 	}
-	public void AddChunkForRenegeration(Chunk c){
-		chunks.add(c.getChunkNo(), c);
-	}
-	
+
 }

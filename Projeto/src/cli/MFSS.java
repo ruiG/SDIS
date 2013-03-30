@@ -11,7 +11,7 @@ import threads.Control;
 import threads.Restore;
 
 public class MFSS {	
-	public static final int _RANDOMSLEEPTIME = 401;
+	public static final int _RANDOMSLEEPTIME = 4010;
 	public static final int _TTL = 1;	
 	public static final byte _CRLF = (byte) 0xDA;
 	public static final char _VERSIONMAJOR = '1';
@@ -58,16 +58,18 @@ public class MFSS {
 			
 			MulticastSocket sk = new MulticastSocket();
 			sk.joinGroup(InetAddress.getByName("224.0.0.3"));
-			BackupFile file = new BackupFile("image.jpg", 2);			
-			//if (file.generateChunks()) {
+			BackupFile file = new BackupFile("image.jpg", 2);
+			if (file.generateChunks()) {
+				file.saveChunks();				
 				file.StartRestore();
 				file.loadChunks();
 				file.RegenerateFileFromChunks();
+				
 				//file.sendChunks(sk, backupGroupAddress, _MDBPORT);
 				//System.out.println("File chunks sent...");
-			//}else{
-			//	System.err.println("Error creating chunks...");
-			//}
+			}else{
+				System.err.println("Error creating chunks...");
+			}
 			sk.close();
 			System.out.println("Ending...");
 			

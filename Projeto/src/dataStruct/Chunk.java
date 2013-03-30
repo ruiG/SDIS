@@ -99,18 +99,15 @@ public class Chunk implements Serializable{
 	
 	public boolean load(){
 		try{		
-			byte [] b= new byte[1024];
 			ByteBuffer body= ByteBuffer.allocate(64000);
 			RandomAccessFile f = new RandomAccessFile(fileId+"."+chunkNo, "r");
-
-			while(f.read(b)== 1024){
-				body.put(b);
-				f.read(b);
-			}
+			byte[] b = new byte[(int) f.length()];			
+			f.read(b);
 			body.put(b);
 			size=body.position();
-			body.flip();
-			body.get(data,0,size);
+			body.flip();			
+			data = new byte[body.remaining()];			
+			body.get(data);
 			f.close();
 			return true;
 		}catch(IOException e){
