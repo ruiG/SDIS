@@ -33,10 +33,10 @@ public class Control extends Thread{
 	@Override
 	public void run() {
 		//TODO Check for version
-		String command="", version="", fileID="", chunknr="", repldeg="";
+		String version="", fileID="", chunknr="";
 
 		while(!finished){
-			byte[] receiveData = new byte[1024];
+			byte[] receiveData = new byte[64000];
 			DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
 			try {
 				controlSocket.receive(receivePacket);
@@ -46,17 +46,17 @@ public class Control extends Thread{
 			String sentence = new String( receivePacket.getData(),0,receivePacket.getLength());
 			System.out.println("RECEIVED: " + sentence);
 			
-			command=Message.parseCommandFromString(sentence, 1);
+			String[] tokens = Message.parseTokensFromString(sentence);
 			
-			if(command.equals("GETCHUNK")){
-				version=Message.parseCommandFromString(sentence,2);
-				fileID=Message.parseCommandFromString(sentence, 3);
-				chunknr=Message.parseCommandFromString(sentence, 4);
+			if(tokens[0].equals("GETCHUNK")){
+				version=tokens[1];
+				fileID=tokens[2];
+				chunknr=tokens[3];
 				parsedGETCHUNK(fileID, chunknr);
 				continue;
 			}
-			if(command.equals("DELETE")){
-				fileID=Message.parseCommandFromString(sentence, 2);
+			if(tokens[0].equals("DELETE")){
+				fileID=tokens[1];
 				parsedDELETE(fileID);
 				continue;
 			}
@@ -69,7 +69,7 @@ public class Control extends Thread{
 		Chunk c=new Chunk(Integer.parseInt(chunknr), fileID);
 		if (c.load()){
 			String toSend=Message.CHUNK(fileID,chunknr,c.getData());
-			Message.sendMessage(controlSocket, Restore.getmCastGroupAddress(), Restore.getControlPort(), toSend.getBytes());
+			Message.sendMessage(controlSocket, Restore.getmCastGroupAddress(), Restore.getControlPort(), toSend);
 			}
 		
 	}

@@ -16,9 +16,7 @@ public class Restore extends Thread{
 	}	
 
 	@Override
-	public void run() {
-		
-	}
+	public void run() {}
 
 	protected void joinMCGroup() throws IOException{
 		restoreSocket.joinGroup(restoreGroupAddress);

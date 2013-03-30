@@ -36,39 +36,31 @@ public class Message{
 		return Header.getHeader("DELETE", fileId);
 	}
 	
-	public static boolean sendMessage(MulticastSocket skt, InetAddress GroupAddress, int port, byte[] message) {
+	public static boolean sendMessage(MulticastSocket skt, InetAddress GroupAddress, int port, String message) {
 		if(MFSS.debugmode){		
-			byte[] head = new byte[15];
-			for (int i = 0; i < 14; i++) {
+			/*byte[] head = new byte[1024];
+			for (int i = 0; i < 1023; i++) {
 				head[i] = message[i];
-			}
-			System.out.println(head.toString()+"... \n\t sent to "+GroupAddress.toString()+" port: "+port);
+			}*/
+			//System.out.println(message/*+"... \n\t sent to "+GroupAddress.toString()+" port: "+port*/);
 		}
-		DatagramPacket pack;
+		DatagramPacket pack;		
 		try {
-			pack = new DatagramPacket(message, message.length,GroupAddress, port);
+			byte[] messageBytes = message.getBytes("US-ASCII");
+			pack = new DatagramPacket(messageBytes, messageBytes.length,GroupAddress, port);
 			skt.setTimeToLive(MFSS._TTL);
 			skt.send(pack);
 			Random r = new Random();
-			Thread.sleep(r.nextInt(MFSS._RANDOMSLEEPTIME));
+			Thread.sleep(r.nextInt(MFSS._RANDOMSLEEPTIME)+500);
 			return true;
 		} catch (InterruptedException | IOException e1) {
+			e1.printStackTrace();
 			return false;
 		}
 	}
 	
-	public static String parseCommandFromString(String data, int indice){
-		int i=0;
-		int posinit=0;
-		int posfinal=0;
-		while(i<indice){
-			posinit=posfinal;
-			posfinal=data.indexOf(' ', posinit+1);
-		}
-		if (data.charAt(posinit)==' '){
-			posinit++;
-		}
-		return data.substring(posinit,posfinal);
+	public static String[] parseTokensFromString(String data){			
+		return data.split("(\\r?\\n)|\\s", 15);	
 	}
 
 

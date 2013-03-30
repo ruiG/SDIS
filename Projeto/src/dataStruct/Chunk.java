@@ -5,6 +5,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.nio.ByteBuffer;
@@ -69,7 +70,13 @@ public class Chunk implements Serializable{
 	
 	public boolean sendChunk(MulticastSocket skt, InetAddress groupAddress, int port){		
 		String message = Message.PUTCHUNK(fileId, getChunkNoAsString(), getRepDegAsChar(), data);
-		Message.sendMessage(skt, groupAddress, port, message.getBytes());
+		try {
+			System.err.println(message.getBytes("US-ASCII").length);
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
+		
+		Message.sendMessage(skt, groupAddress, port, message);
 		return true;		
 	}
 	
