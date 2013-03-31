@@ -93,17 +93,6 @@ public class Chunk implements Serializable{
 		}
 	}
 	
-	public static void deleteAllChunksFromFile(String fileID){
-		int i = 0;
-		while(true){
-			File f = new File(fileID+"."+i);
-			if(f.exists()){
-				f.delete();
-			}
-			i++;
-		}				
-	}
-	
 	public boolean load(){
 		try{		
 			ByteBuffer body= ByteBuffer.allocate(64000);

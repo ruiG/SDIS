@@ -52,8 +52,7 @@ public class MFSS {
 			System.out.println("Control thread started...");
 			b.start();
 			System.out.println("Backup thread started...");
-			r.start();
-			System.out.println("Restore thread started...");
+			
 			
 			MulticastSocket sk = new MulticastSocket();
 			sk.joinGroup(InetAddress.getByName("224.0.0.3"));
@@ -81,4 +80,9 @@ public class MFSS {
 			e.printStackTrace();
 		}
 	 }
+
+	public static boolean hasSpace() {
+			//TODO check for system space
+			return true;
+	}
 }

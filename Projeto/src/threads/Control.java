@@ -1,9 +1,13 @@
 package threads;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
+
+import cli.MFSS;
+import dataStruct.BackupFile;
 import dataStruct.Chunk;
 import dataStruct.Message;
 
@@ -32,7 +36,6 @@ public class Control extends Thread{
 
 	@Override
 	public void run() {
-		//TODO Check for version
 		String version="", fileID="", chunknr="";
 
 		while(!finished){
@@ -44,22 +47,39 @@ public class Control extends Thread{
 				e.printStackTrace();
 			}
 			String sentence = new String( receivePacket.getData(),0,receivePacket.getLength());
-			System.out.println("RECEIVED: " + sentence);
+			if(MFSS.debugmode){
+				System.out.println("RECEIVED: " + sentence.substring(0, 20));
+			}			
 			
-			String[] tokens = Message.parseTokensFromString(sentence);
-			
+			String[] st = sentence.split("\r\n\r\n");
+			String head = st[0];
+			String[] tokens = Message.parseTokensFromString(head);			
 			if(tokens[0].equals("GETCHUNK")){
 				version=tokens[1];
-				fileID=tokens[2];
-				chunknr=tokens[3];
-				parsedGETCHUNK(fileID, chunknr);
-				continue;
+				if(version.equals(MFSS._VERSIONMAJOR+"."+MFSS._VERSIONMINOR)){
+					fileID=tokens[2];
+					chunknr=tokens[3];
+					parsedGETCHUNK(fileID, chunknr);
+					continue;
+				}
 			}
 			if(tokens[0].equals("DELETE")){
 				fileID=tokens[1];
 				parsedDELETE(fileID);
 				continue;
 			}
+			
+			if(tokens[0].equals("REMOVED")){
+				fileID=tokens[1];
+				if(version.equals(MFSS._VERSIONMAJOR+"."+MFSS._VERSIONMINOR)){
+					fileID=tokens[2];
+					chunknr=tokens[3];
+					parsedREMOVED(fileID, chunknr);
+					continue;
+				}
+				continue;
+			}
+			
 			
 		}
 		controlSocket.close();
@@ -68,14 +88,28 @@ public class Control extends Thread{
 	private void parsedGETCHUNK(String fileID, String chunknr){
 		Chunk c=new Chunk(Integer.parseInt(chunknr), fileID);
 		if (c.load()){
-			String toSend=Message.CHUNK(fileID,chunknr,c.getData());
+			String toSend= Message.CHUNK(fileID,chunknr,c.getData());
 			Message.sendMessage(controlSocket, Restore.getmCastGroupAddress(), Restore.getControlPort(), toSend);
 			}
 		
 	}
 	private void parsedDELETE(String fileID){
-		//Chunk c = new Chunk()
+		int i = 0;
+		while(true){
+			File f = new File(fileID+"."+i);
+			if(f.exists()){
+				f.delete();
+				String toSend = Message.REMOVED(fileID, Integer.toString(i));
+				Message.sendMessage(controlSocket, mCastGroupAddress, controlPort, toSend);
+			}
+			i++;
+		}		
 	}
+	
+	public void parsedREMOVED(String fileID,String chunknr){
+		//TODO parse REMOVED
+	}
+	
 	
 	protected void joinMCGroup() throws IOException{
 		controlSocket.joinGroup(mCastGroupAddress);

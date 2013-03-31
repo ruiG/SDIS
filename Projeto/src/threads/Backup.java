@@ -5,7 +5,8 @@ import java.io.UnsupportedEncodingException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
-import java.nio.ByteBuffer;
+
+import cli.MFSS;
 import dataStruct.Chunk;
 import dataStruct.Message;
 
@@ -33,11 +34,7 @@ public class Backup extends Thread{
 	}
 	@Override
 	public void run() {
-		//TODO check for version
-		Boolean receivingbody=false;
-		ByteBuffer body= ByteBuffer.allocate(64000);
-
-		String command="", version="", fileID="", chunknr="", repldeg="";
+		String version="", fileID="", chunknr="", repldeg="";
 
 		while(!finished){
 			byte[] receiveData = new byte[64000];
@@ -48,38 +45,31 @@ public class Backup extends Thread{
 				e.printStackTrace();
 			}
 			String sentence = new String( receivePacket.getData(),0,receivePacket.getLength());
-			System.out.println("RECEIVED: " + sentence.substring(0, 100));
-			/*if(receivingbody){
-				body.put(sentence.getBytes());
-				if(sentence.length()!=1024){
-					// Chegamos ao fim do chunk
-					receivingbody=false;
-					int size=body.position();
-					body.flip();
-					byte [] b= new byte[size];
-					body.get(b,0, size);
-					// COMANDO=PUTCHUNK
-					parsePUTCHUNK(fileID,chunknr,b,Integer.getInteger(repldeg));				
-				}
-				continue;
-			}*/
-			
-			
+			if(MFSS.debugmode){
+				System.out.println("RECEIVED: " + sentence.substring(0, 20));
+			}else{
+				System.out.println("Received a Putchunk message, parsing...");
+			}
 			String[] st = sentence.split("\r\n\r\n");
 			String head = st[0];
 			String b = st[1];
 			String[] tokens = Message.parseTokensFromString(head);
 			if(tokens[0].equals("PUTCHUNK")){
-				version=tokens[1];
-				fileID=tokens[2];
-				chunknr=tokens[3];
-				repldeg=tokens[4];				
-				try {
-					parsePUTCHUNK(fileID,chunknr,b.getBytes("US-ASCII"),Integer.parseInt(repldeg));
-				} catch (NumberFormatException | UnsupportedEncodingException e) {
-					e.printStackTrace();
+				if (version.equals(MFSS._VERSIONMAJOR+"."+MFSS._VERSIONMINOR)) {
+					if (!MFSS.debugmode) {
+						System.out.println("Received a PutChunk message, parsing...");
+					}
+					version = tokens[1];
+					fileID = tokens[2];
+					chunknr = tokens[3];
+					repldeg = tokens[4];
+					try {
+						parsePUTCHUNK(fileID, chunknr, b.getBytes("US-ASCII"),Integer.parseInt(repldeg));
+					} catch (NumberFormatException | UnsupportedEncodingException e) {
+						e.printStackTrace();
+					}
+					continue;
 				}
-				continue;
 			}
 		}	
 		backupSocket.close();
@@ -98,13 +88,21 @@ public class Backup extends Thread{
 
 	private void parsePUTCHUNK(String fileID, String chunknr, byte body[], int repdeg){
 		Chunk c=new Chunk(Integer.parseInt(chunknr), fileID,body,repdeg);
-		if(true){//TODO Verificar se ha espaco no disco para gravar chunk. 
+		if(MFSS.hasSpace()){
 			c.save();
+			if(MFSS.debugmode){
+				System.out.println("Saved a chunk number: "+c.getChunkNo());
+			}
 			String toSend = Message.STORED(fileID, chunknr);
 			Message.sendMessage(backupSocket, Control.getmCastGroupAddress(), Control.getControlPort(), toSend);
+			if(MFSS.debugmode){
+				System.out.println("Stored message sent");
+			}
 		}
 	}
 
+	//******************Getters
+	
 	public static InetAddress getmCastGroupAddress() {
 		return backupGroupAddress;
 	}
