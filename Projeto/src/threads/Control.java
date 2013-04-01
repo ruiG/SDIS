@@ -7,7 +7,6 @@ import java.net.InetAddress;
 import java.net.MulticastSocket;
 
 import cli.MFSS;
-import dataStruct.BackupFile;
 import dataStruct.Chunk;
 import dataStruct.Message;
 
