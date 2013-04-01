@@ -15,16 +15,16 @@ public class BackupFile implements Serializable{
 	 */
 	private static final long serialVersionUID = 1L;
 	
-	String name;
-	String filename; //SHA256 generated
-	long length;
-	long lastmodified;
-	int repDeg;
-	int nrchunks;
-	ArrayList<Chunk> chunks;
+	private String name;
+	private String filename; //SHA256 generated
+	private long length;
+	private long lastmodified;
+	private int repDeg;
+	private int nrchunks;
+	private ArrayList<Chunk> chunks;
 	
 	public BackupFile(String name, int repDeg) {
-		this.name = name;
+		this.setName(name);
 		this.repDeg = repDeg;
 		File file=new File(name);
 		lastmodified=file.lastModified();
@@ -39,7 +39,7 @@ public class BackupFile implements Serializable{
 		ArrayList<Chunk> arr = new ArrayList<Chunk>();
 		arr.clear();
 		try{		
-			RandomAccessFile f = new RandomAccessFile(name, "r");
+			RandomAccessFile f = new RandomAccessFile(getName(), "r");
 			nrchunks=(int)(length/64000);
 			long rest=length%64000;
 			
@@ -96,18 +96,19 @@ public class BackupFile implements Serializable{
 	}
 	
 	public void generateFileName(){
-		filename = Hash.calc(name,Long.toString(lastmodified), Long.toString(length));	
+		filename = Hash.calc(getName(),Long.toString(lastmodified), Long.toString(length));	
 	}
 	
 	public String getFileName(){
 		return filename;
 	}
 	
+	
 	public void RegenerateFileFromChunks(){
 		if(chunks.size()!=nrchunks+1)
 			return;
 		try{		
-			File f = new File("a"+name);
+			File f = new File("a"+getName());
 			FileOutputStream outputStream = new FileOutputStream(f);
 			byte b[]= new byte[64000];
 			for (int i=0;i<nrchunks;i++){
@@ -127,6 +128,18 @@ public class BackupFile implements Serializable{
 	}
 	public void StartRestore(){
 		chunks.clear();
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public void setReplicationDegree(int rep_degree) {
+		this.repDeg = rep_degree;
 	}
 
 }

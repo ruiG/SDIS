@@ -88,7 +88,7 @@ public class Backup extends Thread{
 
 	private void parsePUTCHUNK(String fileID, String chunknr, byte body[], int repdeg){
 		Chunk c=new Chunk(Integer.parseInt(chunknr), fileID,body,repdeg);
-		if(MFSS.hasSpace()){
+		if(true){ //TODO check for space
 			c.save();
 			if(MFSS.debugmode){
 				System.out.println("Saved a chunk number: "+c.getChunkNo());
