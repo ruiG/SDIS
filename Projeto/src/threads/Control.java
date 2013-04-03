@@ -15,21 +15,21 @@ public class Control extends Thread{
 	private static InetAddress mCastGroupAddress;
 	private MulticastSocket controlSocket;
 	volatile boolean finished = false; 
-	
+
 	public Control(InetAddress mCastGroupAddress,Integer controlPort) throws IOException{
 		Control.mCastGroupAddress = mCastGroupAddress;
 		Control.controlPort = controlPort;	
 		controlSocket = new MulticastSocket(Control.controlPort);
 		this.joinMCGroup();
 	}	
-	
+
 	public static byte[] CkMessage(Chunk ck, int repdegree){	
 		byte[] message = Message.CHUNK(ck.getFileId(), ck.getChunkNoAsString(), ck.getData()).getBytes();
 		return message;	
 	}
-	
+
 	public void stopMe(){
-	    finished = true;
+		finished = true;
 	}
 
 
@@ -49,7 +49,7 @@ public class Control extends Thread{
 			if(MFSS.debugmode){
 				System.out.println("RECEIVED: " + sentence.substring(0, 20));
 			}			
-			
+
 			String[] st = sentence.split("\r\n\r\n");
 			String head = st[0];
 			String[] tokens = Message.parseTokensFromString(head);			
@@ -58,39 +58,50 @@ public class Control extends Thread{
 				if(version.equals(MFSS._VERSIONMAJOR+"."+MFSS._VERSIONMINOR)){
 					fileID=tokens[2];
 					chunknr=tokens[3];
-					parsedGETCHUNK(fileID, chunknr);
-					continue;
+					parsedGETCHUNK(fileID, chunknr);					
 				}
+				continue;
 			}
 			if(tokens[0].equals("DELETE")){
 				fileID=tokens[1];
 				parsedDELETE(fileID);
 				continue;
 			}
-			
+
 			if(tokens[0].equals("REMOVED")){
-				fileID=tokens[1];
+				version=tokens[1];				
 				if(version.equals(MFSS._VERSIONMAJOR+"."+MFSS._VERSIONMINOR)){
 					fileID=tokens[2];
 					chunknr=tokens[3];
 					parsedREMOVED(fileID, chunknr);
-					continue;
 				}
 				continue;
 			}
-			
-			
+			if(tokens[0].equals("STORED")){
+				version=tokens[1];
+				if(version.equals(MFSS._VERSIONMAJOR+"."+MFSS._VERSIONMINOR)){
+					fileID=tokens[2];
+					chunknr=tokens[3];
+					parsedSTORED(fileID, chunknr);
+				}
+				continue;
+			}
+
 		}
 		controlSocket.close();
 	}
-	
+
+	private void parsedSTORED(String fileID, String chunknr) {
+		if(chunknr.equals(MFSS.sentChunk) && fileID.equals(MFSS.sentID))
+			MFSS.t.interrupt();	
+	}
+
 	private void parsedGETCHUNK(String fileID, String chunknr){
 		Chunk c=new Chunk(Integer.parseInt(chunknr), fileID);
 		if (c.load()){
 			String toSend= Message.CHUNK(fileID,chunknr,c.getData());
 			Message.sendMessage(controlSocket, Restore.getmCastGroupAddress(), Restore.getControlPort(), toSend);
-			}
-		
+		}		
 	}
 	private void parsedDELETE(String fileID){
 		int i = 0;
@@ -104,18 +115,18 @@ public class Control extends Thread{
 			i++;
 		}		
 	}
-	
+
 	public void parsedREMOVED(String fileID,String chunknr){
-		//TODO parse REMOVED
+
 	}
-	
-	
+
+
 	protected void joinMCGroup() throws IOException{
 		controlSocket.joinGroup(mCastGroupAddress);
 	}
 
 	//******************Getters
-	
+
 	public static InetAddress getmCastGroupAddress() {
 		return mCastGroupAddress;
 	}
@@ -123,7 +134,7 @@ public class Control extends Thread{
 	public static int getControlPort() {
 		return controlPort;
 	}
-	
+
 	//******************Setters 
 
 	public void setControlPort(int controlPort) {

@@ -16,7 +16,8 @@ public class Backup extends Thread{
 	private static InetAddress backupGroupAddress;
 	private MulticastSocket backupSocket;
 	volatile boolean finished = false;
-
+	 private int used_disk_space = 0;
+	
 	public Backup(InetAddress mCastGroupAddress, Integer backupPort) throws IOException{
 		Backup.backupGroupAddress = mCastGroupAddress;
 		Backup.backupPort = backupPort;
@@ -55,11 +56,11 @@ public class Backup extends Thread{
 			String b = st[1];
 			String[] tokens = Message.parseTokensFromString(head);
 			if(tokens[0].equals("PUTCHUNK")){
+				version = tokens[1];
 				if (version.equals(MFSS._VERSIONMAJOR+"."+MFSS._VERSIONMINOR)) {
 					if (!MFSS.debugmode) {
 						System.out.println("Received a PutChunk message, parsing...");
-					}
-					version = tokens[1];
+					}					
 					fileID = tokens[2];
 					chunknr = tokens[3];
 					repldeg = tokens[4];
@@ -88,8 +89,10 @@ public class Backup extends Thread{
 
 	private void parsePUTCHUNK(String fileID, String chunknr, byte body[], int repdeg){
 		Chunk c=new Chunk(Integer.parseInt(chunknr), fileID,body,repdeg);
-		if(true){ //TODO check for space
+		 if(this.used_disk_space + body.length <= MFSS.maximum_disk_space){
+			 System.out.println("CHUNK CREATED \n");
 			c.save();
+			used_disk_space += body.length;
 			if(MFSS.debugmode){
 				System.out.println("Saved a chunk number: "+c.getChunkNo());
 			}
@@ -99,6 +102,9 @@ public class Backup extends Thread{
 				System.out.println("Stored message sent");
 			}
 		}
+		 else{
+			 System.out.println("Error! No Disk Space to store Chunk");
+		} 
 	}
 
 	//******************Getters

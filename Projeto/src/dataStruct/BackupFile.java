@@ -9,6 +9,8 @@ import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.util.ArrayList;
 
+import cli.MFSS;
+
 public class BackupFile implements Serializable{
 	/**
 	 * 
@@ -89,8 +91,22 @@ public class BackupFile implements Serializable{
 	
 	public boolean sendChunks(MulticastSocket skt, InetAddress grpAddress, int port){
 		for (int i = 0; i < chunks.size(); i++) {
-			if(!chunks.get(i).sendChunk(skt, grpAddress, port))
-				return false;
+			int timeout = 400, to = 0;
+			MFSS.sentChunk = chunks.get(i).getChunkNoAsString();
+			MFSS.sentID = chunks.get(i).getFileId();
+			while(to < 5){
+				try{
+					if(!chunks.get(i).sendChunk(skt, grpAddress, port))
+						return false;
+					Thread.sleep(timeout);
+				}catch(InterruptedException ie){
+					System.out.println("Stored received!");
+					break;
+				}
+				timeout*=2;
+				to++;				
+			}
+			if(to == 5) return false;		
 		}	
 		return true;				
 	}

@@ -40,11 +40,12 @@ public class Message{
 		DatagramPacket pack;		
 		try {
 			byte[] messageBytes = message.getBytes("US-ASCII");
-			pack = new DatagramPacket(messageBytes, messageBytes.length,GroupAddress, port);
-			skt.setTimeToLive(MFSS._TTL);
-			skt.send(pack);
 			Random r = new Random();
 			Thread.sleep(r.nextInt(MFSS._RANDOMSLEEPTIME));
+			pack = new DatagramPacket(messageBytes, messageBytes.length,GroupAddress, port);
+			skt.setTimeToLive(MFSS._TTL);
+			skt.send(pack);		
+			
 			return true;
 		} catch (InterruptedException | IOException e1) {
 			e1.printStackTrace();

@@ -41,50 +41,63 @@ public class MFSS {
 	private InetAddress backupGroupAddress = null;
 	private boolean startThreads = true;
 	public static boolean debugmode;
-	private static int maximum_disk_space = 320000; // = 5 chunks (64000 Bytes cada chunk)
+	public static Thread t;
+	public static String sentChunk;
+	private boolean return_home = false;
+	public static int maximum_disk_space = 3200000; // = 50 chunks (64000 Bytes cada chunk)
 	static SearchDir search;
 	static HashMap<String, BackupFile> local_files;
 	private int chunkSize = 64000;
-	private Backup backup;
-	private Control control; 
+	static Backup backup;
+	static Control control;
+	static Restore restore;
+	public static String sentID;
 	String ip_control="224.0.0.1";
 	String ip_restore="224.0.0.2";
 	String ip_backup="224.0.0.3";
 
 	public MFSS(){
 		debugmode = true;
+		while(true){ 
 
-		System.out.print("Welcome  \n 1 - Change Amount of Disk Space \n 2 - Change IP/Ports \n 3 - Start Program \n\nOption: ");
+			System.out.print("Welcome  \n 1 - Change Amount of Disk Space \n 2 - Change IP/Ports \n 3 - Send File \n 4- Restore File \n 0 - Exit \n\n Option: ");
 
-		BufferedReader inFromUser = new BufferedReader(new InputStreamReader(System.in));
-		String ans = null;
-		try {
-			ans = inFromUser.readLine();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
-		while(!ans.equals("3")){
-			while(!ans.equals("1") && !ans.equals("2") && !ans.equals("3") && !ans.equals("0")){
-				System.out.print("  Error! \n Please enter:\n 1 - Change Amount of Disk Space \n 2 - Change IP/Ports \n 3 - Start Program \n\nOption: " );
-				try {
-					ans = inFromUser.readLine();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
+			BufferedReader inFromUser = new BufferedReader(new InputStreamReader(System.in));
+			String ans = null;
+			try {
+				ans = inFromUser.readLine();
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
+
 			if(ans.equals("0")){
-				System.out.print("\nWelcome \n 1 - Change Amount of Disk Space \n 2 - Change IP/Ports \n 3 - Start Program \n\nOption: " );
+				break;
+			}
+			else if(ans.equals("1")){
+				String change = "";
+				System.out.println("\nEnter the disk space in Bytes [-1 to return]: ");
 				try {
-					ans = inFromUser.readLine();
+					change = inFromUser.readLine();
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
+				if(change.equals("-1"))
+					return_home = true;
+				while(!return_home && !isParsableToInt(change)){
+					System.out.println("\nEnter the disk space in Bytes [-1 to return]: ");
+					try {
+						change = inFromUser.readLine();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+				if(!return_home)
+					maximum_disk_space = Integer.parseInt(change);
 			}
 
-			if(ans.equals("2")){
+			else if(ans.equals("2")){
 				String change = "";
-				System.out.println("\nEnter the IP and Ports: " +
+				System.out.println("\nEnter the IP and Ports [-1 to return]: " +
 						"\n'IP_CONTROL PORT_CONTROL IP_BACKUP PORT_BACKUP IP_RESTORE PORT_RESTORE '\n");
 				try {
 					change = inFromUser.readLine();
@@ -93,133 +106,59 @@ public class MFSS {
 				}
 				String[] change_strings = change.split("\\s");
 
-				while(change_strings.length != 6 || !isParsableToInt(change_strings[1]) || !isParsableToInt(change_strings[3]) && !isParsableToInt(change_strings[5])){
-					System.out.println("\nEnter the IP and Ports: " +
-							"\n'IP_CONTROL PORT_CONTROL IP_BACKUP PORT_BACKUP IP_RESTORE PORT_RESTORE'\n");
-					try {
-						change = inFromUser.readLine();
-					} catch (IOException e) {
-						e.printStackTrace();
+				if(change_strings.length == 1 && change_strings[0].equals("-1"))
+					return_home = true;
+				else{
+
+					while(change_strings.length != 6 || !isParsableToInt(change_strings[1]) || !isParsableToInt(change_strings[3]) && !isParsableToInt(change_strings[5])){
+						System.out.println("\nEnter the IP and Ports: " +
+								"\n'IP_CONTROL PORT_CONTROL IP_BACKUP PORT_BACKUP IP_RESTORE PORT_RESTORE'\n");
+						try {
+							change = inFromUser.readLine();
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+						change_strings = change.split("\\s");
 					}
-					change_strings = change.split("\\s");
+					
+					ip_control=change_strings[0];
+					_MCPORT =Integer.parseInt(change_strings[1]);
+					ip_backup=change_strings[2];
+					_MDBPORT =Integer.parseInt(change_strings[3]);
+					ip_restore=change_strings[4];
+					_MDRPORT =Integer.parseInt(change_strings[5]);
 				}
-				ip_control=change_strings[0];
-				_MCPORT =Integer.parseInt(change_strings[1]);
-				ip_backup=change_strings[2];
-				_MDBPORT =Integer.parseInt(change_strings[3]);
-				ip_restore=change_strings[4];
-				_MDRPORT =Integer.parseInt(change_strings[5]);
-
-
+				
 
 			}
 
-			else if(ans.equals("1")){
-				String change = "";
-				System.out.println("\nEnter the disk space in Bytes: ");
-				try {
-					change = inFromUser.readLine();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-
-				while(!isParsableToInt(change)){
-					System.out.println("\nEnter the disk space in Bytes: ");
-					try {
-						change = inFromUser.readLine();
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-				}
-
-				maximum_disk_space = Integer.parseInt(change);
+			else if(ans.equals("3")){
+				local_files = new HashMap<String, BackupFile>();
+				// ler dir local
+				search = new SearchDir(); // Preenche area local
+				programStart();
 			}
 			
-			if(!ans.equals("3"))
-				ans = "0";
 		}
-
-		local_files = new HashMap<String, BackupFile>();
-
-		// ler dir local
-		search = new SearchDir(); // Preenche area local
-
-
-		programStart();
 	}
 
 
 	private void programStart() {
-		while(true){
-
-			fillLocalArea(); // Preenche estrutura com os ficheiros locais
-			// visualiza os files da area local
-			@SuppressWarnings("rawtypes")
-			Iterator it = (Iterator) local_files.entrySet().iterator();
-			Vector<String> fileIDs= new Vector<String>(local_files.size()); // Vector tempor�rio que guarda os FileID
-			System.out.println("\n\nChoose a file to backup <INDEX REPLICATION_DEGREE-[1-9]> : ");
-			int i = 0;
-			while (it.hasNext()) {
-				@SuppressWarnings("rawtypes")
-				Map.Entry pairs = (Entry) it.next();
-				fileIDs.insertElementAt(pairs.getKey().toString(), i);
-				System.out.println(" " + i + " - " + ((BackupFile)pairs.getValue()).getName());
-				//	it.remove(); // avoids a ConcurrentModificationException
-				i++;
-			}
-
-			System.out.print("\nOption: ");
-			BufferedReader inFromUser = new BufferedReader(new InputStreamReader(System.in));
-			String ans = null;
-			try {
-				ans = inFromUser.readLine();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			
-			// Divide a string em Index e Replication Degree
-			String[] token = ans.split(" ");
-			
-			while(token.length != 2 || !isParsableToInt(token[0]) || !isParsableToInt(token[1])
-					|| Integer.parseInt(token[0]) < 0 || Integer.parseInt(token[0]) > i-1
-					|| (Integer.parseInt(token[1]) < 1 ||  Integer.parseInt(token[1]) > 9)){
-				System.out.print("\nOops!\nPlease try again!\nOption <INDEX REPLICATION_DEGREE-[1-9]> : ");
-				inFromUser = new BufferedReader(new InputStreamReader(System.in));
-				ans = null;
-				try {
-					ans = inFromUser.readLine();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-				
-				// Divide a string em Index e Replication Degree
-				token = ans.split(" ");
-			}
-
-			int index = Integer.parseInt(token[0]);
-			int rep_degree = Integer.parseInt(token[1]);
-			System.out.println("File: " + local_files.get(fileIDs.get(index)).getName());		
-
-			// Inicia as Threads
-			if(startThreads){
-				connectAndStartThreads();
-			}
-
-			sendFileToBackup(fileIDs, index, rep_degree);
-		}
+			fillLocalArea(); // Preenche estrutura com os ficheiros locais			// visualiza os files da area local			@SuppressWarnings("rawtypes")			Iterator it = (Iterator) local_files.entrySet().iterator();			Vector<String> fileIDs= new Vector<String>(local_files.size()); // Vector tempor�rio que guarda os FileID			System.out.println("\n\nChoose a file to backup <INDEX REPLICATION_DEGREE-[1-9]> : ");			int i = 0;			while (it.hasNext()) {				@SuppressWarnings("rawtypes")				Map.Entry pairs = (Entry) it.next();				fileIDs.insertElementAt(pairs.getKey().toString(), i);				System.out.println(" " + i + " - " + ((BackupFile)pairs.getValue()).getName());				//	it.remove(); // avoids a ConcurrentModificationException				i++;			}
+			System.out.print("\nOption: ");			BufferedReader inFromUser = new BufferedReader(new InputStreamReader(System.in));			String ans = null;			try {				ans = inFromUser.readLine();			} catch (IOException e) {				e.printStackTrace();			}				// Divide a string em Index e Replication Degree			String[] token = ans.split(" ");				while(token.length != 2 || !isParsableToInt(token[0]) || !isParsableToInt(token[1])					|| Integer.parseInt(token[0]) < 0 || Integer.parseInt(token[0]) > i-1					|| (Integer.parseInt(token[1]) < 1 ||  Integer.parseInt(token[1]) > 9)){				System.out.print("\nOops!\nPlease try again!\nOption <INDEX REPLICATION_DEGREE-[1-9]> : ");				inFromUser = new BufferedReader(new InputStreamReader(System.in));				ans = null;				try {					ans = inFromUser.readLine();				} catch (IOException e) {					e.printStackTrace();				}					// Divide a string em Index e Replication Degree				token = ans.split(" ");			}
+			int index = Integer.parseInt(token[0]);			int rep_degree = Integer.parseInt(token[1]);			System.out.println("File: " + local_files.get(fileIDs.get(index)).getName());		
+			// Inicia as Threads			if(startThreads){				connectAndStartThreads();			}
+			sendFileToBackup(fileIDs, index, rep_degree);
 	}
 
-	public void sendFileToBackup(Vector<String> fileIDs, int index,
-			int rep_degree) {
+	public void sendFileToBackup(Vector<String> fileIDs, int index,	int rep_degree) {
 		MulticastSocket sk;
 		try {
 			sk = new MulticastSocket();
 			sk.joinGroup(InetAddress.getByName(ip_backup));
 			local_files.get(fileIDs.get(index)).setReplicationDegree(rep_degree); // Actualiza o Replication Degree
 
-			if (local_files.get(fileIDs.get(index)).generateChunks()) {
-				local_files.get(fileIDs.get(index)).sendChunks(sk, backupGroupAddress, _MDBPORT);
-				System.out.println("File chunks sent...");
+			if (local_files.get(fileIDs.get(index)).generateChunks()) {						if(local_files.get(fileIDs.get(index)).sendChunks(sk, backupGroupAddress, _MDBPORT))													System.out.println("File chunks sent...");					else						System.out.println("Error sending chunks...");
 			}else{
 				System.err.println("Error creating chunks...");
 			}
@@ -245,34 +184,32 @@ public class MFSS {
 			backupGroupAddress = InetAddress.getByName(ip_backup);
 
 			System.out.println("Starting M.F.S.S.");
-			Control c = new Control(controlGroupAddress,_MCPORT);
+			control = new Control(controlGroupAddress,_MCPORT);
 			System.out.println("Control object initialized with:");
 			System.out.println("\t "+"Control group address: "+controlGroupAddress.getHostAddress());
 			System.out.println("\t "+"MCPORT: "+_MCPORT);
 
 
-			Restore r = new Restore(restoreGroupAddress, _MDRPORT);
+			restore = new Restore(restoreGroupAddress, _MDRPORT);
 			System.out.println("Restore object initialized with:");
 			System.out.println("\t "+"Restore group address: "+restoreGroupAddress.getHostAddress());
 			System.out.println("\t "+"MDRPORT: "+_MDRPORT);
 
-			Backup b = new Backup(backupGroupAddress, _MDBPORT);
+			backup  = new Backup(backupGroupAddress, _MDBPORT);
 			System.out.println("Backup object initialized with:");
 			System.out.println("\t "+"Backup group address: "+backupGroupAddress.getHostAddress());
 			System.out.println("\t "+"MDRPORT: "+_MDRPORT);
 
 
 
-			c.start();
+			control.start();
 			System.out.println("Control thread started...");
-			b.start();
+			backup.start();
 			System.out.println("Backup thread started...");
-			r.start();
+			restore.start();
 			System.out.println("Restore thread started...");
 
-
-			//		c.stopMe();
-			//		b.stopMe();
+	
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -347,9 +284,8 @@ public class MFSS {
 		}
 	}
 	public static void main(String args[]){
-		MFSS m = new MFSS();
+		MFSS.t=Thread.currentThread();
+		new MFSS();		
 	}
-
-
 }
 
