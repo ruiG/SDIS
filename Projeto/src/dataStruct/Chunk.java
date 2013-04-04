@@ -10,11 +10,8 @@ import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.nio.ByteBuffer;
 
-public class Chunk implements Serializable{
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
+public class Chunk {
+	
 	private String fileId;
 	private int repDeg;
 	private int size;
