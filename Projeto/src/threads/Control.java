@@ -5,15 +5,16 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
+import java.net.SocketException;
 
 import cli.MFSS;
 import dataStruct.Chunk;
 import dataStruct.Message;
 
 public class Control extends Thread{
-	private static int controlPort;
-	private static InetAddress mCastGroupAddress;
-	private MulticastSocket controlSocket;
+	static int controlPort;
+	static InetAddress mCastGroupAddress;
+	MulticastSocket controlSocket;
 	volatile boolean finished = false; 
 
 	public Control(InetAddress mCastGroupAddress,Integer controlPort) throws IOException{
@@ -35,20 +36,20 @@ public class Control extends Thread{
 
 	@Override
 	public void run() {
-		String version="", fileID="", chunknr="";
-
 		while(!finished){
+			String version="", fileID="", chunknr="";
 			byte[] receiveData = new byte[64000];
 			DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
+
 			try {
 				controlSocket.receive(receivePacket);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 			String sentence = new String( receivePacket.getData(),0,receivePacket.getLength());
-			if(MFSS.debugmode){
-				System.out.println("RECEIVED: " + sentence.substring(0, 20));
-			}			
+
+			if(MFSS.debugmode)
+				System.out.println("RECEIVED: " + sentence.substring(0, 20));	
 
 			String[] st = sentence.split("\r\n\r\n");
 			String head = st[0];
@@ -77,14 +78,17 @@ public class Control extends Thread{
 				}
 				continue;
 			}
-			if(tokens[0].equals("STORED")){
-				version=tokens[1];
-				if(version.equals(MFSS._VERSIONMAJOR+"."+MFSS._VERSIONMINOR)){
-					fileID=tokens[2];
-					chunknr=tokens[3];
-					parsedSTORED(fileID, chunknr);
+
+			if(MFSS.sentID != null){
+				if(tokens[0].equals("STORED")){
+					version=tokens[1];
+					if(version.equals(MFSS._VERSIONMAJOR+"."+MFSS._VERSIONMINOR)){
+						fileID=tokens[2];
+						chunknr=tokens[3];
+						parsedSTORED(fileID, chunknr);
+					}
+					continue;
 				}
-				continue;
 			}
 
 		}
@@ -111,20 +115,25 @@ public class Control extends Thread{
 				f.delete();
 				String toSend = Message.REMOVED(fileID, Integer.toString(i));
 				Message.sendMessage(controlSocket, mCastGroupAddress, controlPort, toSend);
+				break;
 			}
 			i++;
 		}		
 	}
 
 	public void parsedREMOVED(String fileID,String chunknr){
-
+		//TODO parsedREMOVED
 	}
 
 
 	protected void joinMCGroup() throws IOException{
 		controlSocket.joinGroup(mCastGroupAddress);
 	}
-
+	
+	public void closeSocket() throws SocketException{
+		controlSocket.close();
+	}
+	
 	//******************Getters
 
 	public static InetAddress getmCastGroupAddress() {

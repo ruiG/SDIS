@@ -5,14 +5,24 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 
+/**
+ * Class DB
+ * This class abstracts the queries to the Backed-up files database
+ * 
+ * @author Rui Gonçalves
+ *
+ */
 public class DB {
 
 	private Connection conn;
 	private String name;
 	private PreparedStatement insertFile, selectNumChunksFile, deleteFilebyName, selectFileIDByName, selectFileNameByID;
+
+
 	/**
-	 * Instancia uma objecto DB que liga a uma base de dados SQLite 
+	 * Instanciates a DB object and connects to a SQLite Database with the name given
 	 * @param databaseName
 	 * @throws ClassNotFoundException
 	 * @throws SQLException
@@ -28,8 +38,37 @@ public class DB {
 		deleteFilebyName = conn.prepareStatement("DELETE FROM files WHERE fileID=?");
 
 	}
-	
-	
+
+	/**
+	 * Returns a ArrayList of Arraylist Strings with all the files saved on the DB
+	 * 
+	 * @return ArrayList<ArrayList<String> OR null if fails
+	 */
+	public ArrayList<ArrayList<String> > listAllFiles(){
+		try {
+			ResultSet result =  conn.createStatement().executeQuery("SELECT * FROM files;");
+			ArrayList<ArrayList<String> > arr = new ArrayList<ArrayList<String> > ();
+			try{	
+				while(result.next()){
+					ArrayList<String> arrS =  new ArrayList<>();
+					arrS.add(result.getString("fileName"));
+					arrS.add(result.getString("fileID"));					
+					arrS.add(result.getString("numberOfChunks"));
+					arr.add(arrS);
+				}				
+			}finally{
+				result.close();
+			}
+			return arr;
+		} catch (SQLException e) {
+			System.err.println(e.getErrorCode()+" - "+e.getMessage());
+			System.err.println(e.getSQLState());
+			return null;
+		}
+
+	}
+
+
 	/**
 	 * Adds a file registry to the database.
 	 * @param fileID
@@ -99,7 +138,7 @@ public class DB {
 			return null;
 		}		
 	}
-	
+
 	/**
 	 * Retrieves the file name of a file by it's file ID.
 	 * @param fileID
@@ -124,7 +163,7 @@ public class DB {
 			return null;
 		}		
 	}
-	
+
 	/**
 	 * Deletes a file by it's name
 	 * @param fileName
@@ -148,7 +187,7 @@ public class DB {
 	}
 
 	/**
-	 * closes the connection to the database
+	 * Closes the connection to the database
 	 */
 	public void close(){
 		try {
@@ -158,7 +197,7 @@ public class DB {
 			e.printStackTrace();
 		}
 	}
-	
+
 	/**
 	 * Main para testar a base de dados
 	 * @param args
@@ -175,7 +214,7 @@ public class DB {
 		String bla = database.getFileIDbyFileName("lel.gif");
 		if(bla == null)
 			System.out.println("NOPE");
-		
+
 		database.close();
 	}
 }

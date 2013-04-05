@@ -5,6 +5,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
+import java.net.SocketException;
 
 import cli.MFSS;
 import dataStruct.Chunk;
@@ -16,8 +17,7 @@ public class Backup extends Thread{
 	private static InetAddress backupGroupAddress;
 	private MulticastSocket backupSocket;
 	volatile boolean finished = false;
-	 private int used_disk_space = 0;
-	
+
 	public Backup(InetAddress mCastGroupAddress, Integer backupPort) throws IOException{
 		Backup.backupGroupAddress = mCastGroupAddress;
 		Backup.backupPort = backupPort;
@@ -25,9 +25,9 @@ public class Backup extends Thread{
 		this.joinMCGroup();
 
 	}
-	
+
 	public void stopMe(){
-	    finished = true;
+		finished = true;
 	}
 
 	protected void joinMCGroup() throws IOException{
@@ -35,9 +35,8 @@ public class Backup extends Thread{
 	}
 	@Override
 	public void run() {
-		String version="", fileID="", chunknr="", repldeg="";
-
 		while(!finished){
+			String version="", fileID="", chunknr="", repldeg="";
 			byte[] receiveData = new byte[64000];
 			DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
 			try {
@@ -46,11 +45,8 @@ public class Backup extends Thread{
 				e.printStackTrace();
 			}
 			String sentence = new String( receivePacket.getData(),0,receivePacket.getLength());
-			if(MFSS.debugmode){
+			if(MFSS.debugmode)
 				System.out.println("RECEIVED: " + sentence.substring(0, 20));
-			}else{
-				System.out.println("Received a Putchunk message, parsing...");
-			}
 			String[] st = sentence.split("\r\n\r\n");
 			String head = st[0];
 			String b = st[1];
@@ -59,7 +55,7 @@ public class Backup extends Thread{
 				version = tokens[1];
 				if (version.equals(MFSS._VERSIONMAJOR+"."+MFSS._VERSIONMINOR)) {
 					if (!MFSS.debugmode) {
-						System.out.println("Received a PutChunk message, parsing...");
+						System.out.println("Parsing a PutChunk message...");
 					}					
 					fileID = tokens[2];
 					chunknr = tokens[3];
@@ -71,9 +67,10 @@ public class Backup extends Thread{
 					}
 					continue;
 				}
-			}
-		}	
-		backupSocket.close();
+
+			}	
+			backupSocket.close();
+		}
 	}
 
 	public byte[] StrMessage(Chunk ck, int repdegree){	
@@ -89,10 +86,10 @@ public class Backup extends Thread{
 
 	private void parsePUTCHUNK(String fileID, String chunknr, byte body[], int repdeg){
 		Chunk c=new Chunk(Integer.parseInt(chunknr), fileID,body,repdeg);
-		 if(this.used_disk_space + body.length <= MFSS.maximum_disk_space){
-			 System.out.println("CHUNK CREATED \n");
+		if(MFSS.used_disk_space + body.length <= MFSS.maximum_disk_space){
+			System.out.println("CHUNK CREATED \n");
 			c.save();
-			used_disk_space += body.length;
+			MFSS.used_disk_space += body.length;
 			if(MFSS.debugmode){
 				System.out.println("Saved a chunk number: "+c.getChunkNo());
 			}
@@ -102,13 +99,17 @@ public class Backup extends Thread{
 				System.out.println("Stored message sent");
 			}
 		}
-		 else{
-			 System.out.println("Error! No Disk Space to store Chunk");
+		else{
+			System.out.println("failed to save chunk... Disk Space full");
 		} 
 	}
 
-	//******************Getters
+	public void closeSocket() throws SocketException{
+		backupSocket.close();
+	}
 	
+	//******************Getters
+
 	public static InetAddress getmCastGroupAddress() {
 		return backupGroupAddress;
 	}
@@ -116,7 +117,7 @@ public class Backup extends Thread{
 	public static int getControlPort() {
 		return backupPort;
 	}
-
+	
 	//******************Setters 
 
 	public void setControlPort(int backupPort) {

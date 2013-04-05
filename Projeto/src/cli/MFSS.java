@@ -1,181 +1,254 @@
 package cli;
-import java.io.BufferedReader;
-
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.net.SocketException;
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Vector;
-
+import java.util.InputMismatchException;
+import java.util.Scanner;
 
 import threads.Backup;
 import threads.Control;
 import threads.Restore;
 import dataStruct.BackupFile;
-import dataStruct.SearchDir;
+import dataStruct.BackupFile.NoSuchFileException;
+import database.DB;
 
 
 public class MFSS {	
 
 	//IP_CONTROL PORT_CONTROL IP_BACKUP PORT_BACKUP IP_RESTORE PORT_RESTORE
 
+	//*************Public Variables*****************
+
 	public static final int _RANDOMSLEEPTIME = 401;
 	public static final int _TTL = 1;	
 	public static final String _CRLF = "\r\n";
 	public static final char _VERSIONMAJOR = '1';
 	public static final char _VERSIONMINOR = '0';
-	private static int _MDRPORT = 3002; // Recover
-	private static int _MCPORT = 3000; // Control
-	private static int _MDBPORT = 3001; // Backup
-	private InetAddress controlGroupAddress = null;
-	private InetAddress restoreGroupAddress = null;
-	private InetAddress backupGroupAddress = null;
-	private boolean startThreads = true;
 	public static boolean debugmode;
 	public static Thread t;
-	public static String sentChunk;
-	private boolean return_home = false;
 	public static int maximum_disk_space = 3200000; // = 50 chunks (64000 Bytes cada chunk)
-	static SearchDir search;
+	public static int used_disk_space = 0;	
+
+	//*************Private Variables*****************
+
+	static int _MDRPORT = 3002; // Recover
+	static int _MCPORT = 3000; // Control
+	static int _MDBPORT = 3001; // Backup
+	static InetAddress controlGroupAddress = null;
+	static InetAddress restoreGroupAddress = null;
+	static InetAddress backupGroupAddress = null;
+	static boolean startThreads = true;
+	static boolean returnToMainMenu = false;
 	static HashMap<String, BackupFile> local_files;
-	private int chunkSize = 64000;
+	static int chunkSize = 64000;
 	static Backup backup;
 	static Control control;
 	static Restore restore;
-	public static String sentID;
-	String ip_control="224.0.0.1";
-	String ip_restore="224.0.0.2";
-	String ip_backup="224.0.0.3";
+	static int key;
+	static String ip_control="224.0.0.1";
+	static String ip_restore="224.0.0.2";
+	static String ip_backup="224.0.0.3";
+	static Scanner scanner = new Scanner( System.in );
+	static DB database;
 
-	public MFSS(){
-		debugmode = true;
-		while(true){ 
+	//**************State variables******************
+	public volatile static String sentChunk;
+	public volatile static String sentID;
+	public volatile static int numberOfChunksRequested = 0;
+	public volatile static String requestedFileID = "";
+	public volatile static String requestedChunkNr = "";
 
-			System.out.print("Welcome  \n 1 - Change Amount of Disk Space \n 2 - Change IP/Ports \n 3 - Send File \n 4- Restore File \n 0 - Exit \n\n Option: ");
+	public static void main(String args[]){
+		MFSS.t=Thread.currentThread();
+		boolean exit = false;
+		debugmode = true;	
 
-			BufferedReader inFromUser = new BufferedReader(new InputStreamReader(System.in));
-			String ans = null;
-			try {
-				ans = inFromUser.readLine();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+		parseArgs(args);
 
-			if(ans.equals("0")){
+		if(!connectToDatabase())
+			return;
+		startThreads();		
+		do{
+			int option = mainMenu();
+			switch (option) {
+			case 1:
+				manageBkFiles();
+				break;
+
+			case 2:
+				backupFileMenu();
+				break;
+
+			case 3:
+				switchDebugmode();
+				break;
+
+
+			case 0:
+				shutdown();
+				return;
+
+			default:
 				break;
 			}
-			else if(ans.equals("1")){
-				String change = "";
-				System.out.println("\nEnter the disk space in Bytes [-1 to return]: ");
-				try {
-					change = inFromUser.readLine();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-				if(change.equals("-1"))
-					return_home = true;
-				while(!return_home && !isParsableToInt(change)){
-					System.out.println("\nEnter the disk space in Bytes [-1 to return]: ");
-					try {
-						change = inFromUser.readLine();
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-				}
-				if(!return_home)
-					maximum_disk_space = Integer.parseInt(change);
-			}
+			clearScreen();
+		}while(!exit);
+	}
 
-			else if(ans.equals("2")){
-				String change = "";
-				System.out.println("\nEnter the IP and Ports [-1 to return]: " +
-						"\n'IP_CONTROL PORT_CONTROL IP_BACKUP PORT_BACKUP IP_RESTORE PORT_RESTORE '\n");
-				try {
-					change = inFromUser.readLine();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-				String[] change_strings = change.split("\\s");
 
-				if(change_strings.length == 1 && change_strings[0].equals("-1"))
-					return_home = true;
-				else{
 
-					while(change_strings.length != 6 || !isParsableToInt(change_strings[1]) || !isParsableToInt(change_strings[3]) && !isParsableToInt(change_strings[5])){
-						System.out.println("\nEnter the IP and Ports: " +
-								"\n'IP_CONTROL PORT_CONTROL IP_BACKUP PORT_BACKUP IP_RESTORE PORT_RESTORE'\n");
-						try {
-							change = inFromUser.readLine();
-						} catch (IOException e) {
-							e.printStackTrace();
-						}
-						change_strings = change.split("\\s");
-					}
-					
-					ip_control=change_strings[0];
-					_MCPORT =Integer.parseInt(change_strings[1]);
-					ip_backup=change_strings[2];
-					_MDBPORT =Integer.parseInt(change_strings[3]);
-					ip_restore=change_strings[4];
-					_MDRPORT =Integer.parseInt(change_strings[5]);
-				}
-				
+	private static void parseArgs(String[] args) {
+		// TODO parseArgs		
+	}
 
-			}
 
-			else if(ans.equals("3")){
-				local_files = new HashMap<String, BackupFile>();
-				// ler dir local
-				search = new SearchDir(); // Preenche area local
-				programStart();
-			}
-			
+
+	private static boolean connectToDatabase() {
+		try {
+			database = new DB("db");
+			return true;
+		} catch (ClassNotFoundException | SQLException e) {
+			System.err.println("Error connecting to database");
+			return false;
 		}
 	}
 
 
-	private void programStart() {
-			fillLocalArea(); // Preenche estrutura com os ficheiros locais			// visualiza os files da area local			@SuppressWarnings("rawtypes")			Iterator it = (Iterator) local_files.entrySet().iterator();			Vector<String> fileIDs= new Vector<String>(local_files.size()); // Vector tempor�rio que guarda os FileID			System.out.println("\n\nChoose a file to backup <INDEX REPLICATION_DEGREE-[1-9]> : ");			int i = 0;			while (it.hasNext()) {				@SuppressWarnings("rawtypes")				Map.Entry pairs = (Entry) it.next();				fileIDs.insertElementAt(pairs.getKey().toString(), i);				System.out.println(" " + i + " - " + ((BackupFile)pairs.getValue()).getName());				//	it.remove(); // avoids a ConcurrentModificationException				i++;			}
-			System.out.print("\nOption: ");			BufferedReader inFromUser = new BufferedReader(new InputStreamReader(System.in));			String ans = null;			try {				ans = inFromUser.readLine();			} catch (IOException e) {				e.printStackTrace();			}				// Divide a string em Index e Replication Degree			String[] token = ans.split(" ");				while(token.length != 2 || !isParsableToInt(token[0]) || !isParsableToInt(token[1])					|| Integer.parseInt(token[0]) < 0 || Integer.parseInt(token[0]) > i-1					|| (Integer.parseInt(token[1]) < 1 ||  Integer.parseInt(token[1]) > 9)){				System.out.print("\nOops!\nPlease try again!\nOption <INDEX REPLICATION_DEGREE-[1-9]> : ");				inFromUser = new BufferedReader(new InputStreamReader(System.in));				ans = null;				try {					ans = inFromUser.readLine();				} catch (IOException e) {					e.printStackTrace();				}					// Divide a string em Index e Replication Degree				token = ans.split(" ");			}
-			int index = Integer.parseInt(token[0]);			int rep_degree = Integer.parseInt(token[1]);			System.out.println("File: " + local_files.get(fileIDs.get(index)).getName());		
-			// Inicia as Threads			if(startThreads){				connectAndStartThreads();			}
-			sendFileToBackup(fileIDs, index, rep_degree);
+
+	private static int mainMenu() {
+		String key = "";
+		System.out.println("-------------------------MULTICAST FILE STORAGE SYSTEM-------------------------");
+
+		nl();nl();
+		System.out.println("1 ~ Manage Backed-up files");
+		nl();
+		System.out.println("2 ~ Back-up a file");
+		nl();
+		System.out.println("3 ~ Enable/disable debug mode");
+		nl();
+		System.out.println("0 ~ Exit");
+		nl();nl();
+		do{
+			System.out.println("Please choose an option: ");		
+			key = scanner.next();
+			if(( key.equals("1") || key.equals("2") || key.equals("3") || key.equals("0") )){
+				return Integer.parseInt(key);
+			}else{
+				return -1;
+			}
+		}while(true);	
 	}
 
-	public void sendFileToBackup(Vector<String> fileIDs, int index,	int rep_degree) {
+	private static void switchDebugmode() {
+		if(debugmode)
+			debugmode = false;
+		else
+			debugmode = true;
+		System.out.println("Debug mode Switched...");
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e) {}
+	}
+
+	private static void backupFileMenu() {
+		System.out.println("-------------------------MULTICAST FILE STORAGE SYSTEM-------------------------");
+		nl();
+		System.out.println("[                          [SEND A FILE TO BACKUP]                            ]");
+		nl();
+		System.out.print("Please input a file to send: ");
+		String filename = scanner.next();
+		if(new File(filename).exists()){
+			int repDeg = -1;
+			do{
+				nl();
+				System.out.print("Please input the desired replication degree: ");
+				try {
+					repDeg = scanner.nextInt();
+					sendFileToBackup(filename, repDeg);
+					return;
+				} catch (InputMismatchException e) {
+					nl();
+					System.out.println("invalid input please retry");
+					continue;
+				}
+			}while(repDeg < 0 && repDeg > 9);
+
+		}
+	}
+
+	private static void shutdown() {
+		try{
+			backup.stopMe();
+			backup.closeSocket();
+			restore.stopMe();
+			restore.closeSocket();
+			control.stopMe();
+			control.closeSocket();
+		}catch(SocketException e){}
+	}
+
+	private static void manageBkFiles() {
+		ArrayList<ArrayList<String>> list;
+		System.out.println("-------------------------MULTICAST FILE STORAGE SYSTEM-------------------------");
+		nl();
+		System.out.println("[                               [BACKED UP FILES]                             ]");
+		System.out.println("[[      filename                                        ][  number of chunks  ]");
+		nl();
+		list = database.listAllFiles();
+		if(list != null){
+			if(!list.isEmpty()){
+				for (int i = 0; i < list.size(); i++) {
+					System.out.println("["+list.get(i).get(1)+"]["+list.get(i).get(2)+"]");
+				}
+			}
+			else {
+				nl();
+				System.out.println("[                                  [No files]                                 ]");
+			}
+		}else {
+			System.err.println("Error on database querry");
+		}
+		try {
+			System.in.read();
+		} catch (IOException e) {}
+	}
+
+	public static void sendFileToBackup(String filename, int rep_degree) {
 		MulticastSocket sk;
 		try {
 			sk = new MulticastSocket();
 			sk.joinGroup(InetAddress.getByName(ip_backup));
-			local_files.get(fileIDs.get(index)).setReplicationDegree(rep_degree); // Actualiza o Replication Degree
+			nl();
+			BackupFile bf = new BackupFile(filename, rep_degree);
 
-			if (local_files.get(fileIDs.get(index)).generateChunks()) {						if(local_files.get(fileIDs.get(index)).sendChunks(sk, backupGroupAddress, _MDBPORT))													System.out.println("File chunks sent...");					else						System.out.println("Error sending chunks...");
+			if(bf.generateChunks()){
+				if(bf.sendChunks(sk, backupGroupAddress, _MDBPORT)){
+					System.out.println("File chunks sent...");
+					database.addFile(bf.getName(), bf.getID(), bf.getNrChunks());
+					System.out.println("File info added to the database...");
+				}					
+				else
+					System.err.println("Error sending chunks...");
 			}else{
 				System.err.println("Error creating chunks...");
 			}
-
-			//		local_files.get(fileIDs.get(index)).RegenerateFileFromChunks();
 			sk.close();
 			System.out.println("Ending...");
 		} catch (IOException e) {
-			e.printStackTrace();
+			System.err.println("Error joining group: "+ip_backup);
+		}
+		catch (NoSuchFileException e) {
+			nl();
+			System.err.println("No such file on directory...");
 		}
 	}
 
-
-	/**
-	 * 
-	 */
-	public void connectAndStartThreads() {
+	private static boolean startThreads() {
 		try {
 			startThreads = false;
 
@@ -183,94 +256,48 @@ public class MFSS {
 			restoreGroupAddress = InetAddress.getByName(ip_restore);
 			backupGroupAddress = InetAddress.getByName(ip_backup);
 
-			System.out.println("Starting M.F.S.S.");
-			control = new Control(controlGroupAddress,_MCPORT);
-			System.out.println("Control object initialized with:");
-			System.out.println("\t "+"Control group address: "+controlGroupAddress.getHostAddress());
-			System.out.println("\t "+"MCPORT: "+_MCPORT);
+			if(debugmode)
+				System.out.println("Starting M.F.S.S...");
 
+			control = new Control(controlGroupAddress,_MCPORT);
+			if(debugmode){
+				System.out.println("Control object initialized with:");
+				System.out.println("\t "+"Control group address: "+controlGroupAddress.getHostAddress());
+				System.out.println("\t "+"MCPORT: "+_MCPORT);
+			}
 
 			restore = new Restore(restoreGroupAddress, _MDRPORT);
-			System.out.println("Restore object initialized with:");
-			System.out.println("\t "+"Restore group address: "+restoreGroupAddress.getHostAddress());
-			System.out.println("\t "+"MDRPORT: "+_MDRPORT);
+			if(debugmode){
+				System.out.println("Restore object initialized with:");
+				System.out.println("\t "+"Restore group address: "+restoreGroupAddress.getHostAddress());
+				System.out.println("\t "+"MDRPORT: "+_MDRPORT);
+			}
 
 			backup  = new Backup(backupGroupAddress, _MDBPORT);
-			System.out.println("Backup object initialized with:");
-			System.out.println("\t "+"Backup group address: "+backupGroupAddress.getHostAddress());
-			System.out.println("\t "+"MDRPORT: "+_MDRPORT);
+			if(debugmode){
+				System.out.println("Backup object initialized with:");
+				System.out.println("\t "+"Backup group address: "+backupGroupAddress.getHostAddress());
+				System.out.println("\t "+"MDRPORT: "+_MDRPORT);
+			}
 
 
 
 			control.start();
-			System.out.println("Control thread started...");
+			if(debugmode)
+				System.out.println("Control thread started...");
 			backup.start();
-			System.out.println("Backup thread started...");
+			if(debugmode)
+				System.out.println("Backup thread started...");
 			restore.start();
-			System.out.println("Restore thread started...");
-
-	
+			if(debugmode)	
+				System.out.println("Restore thread started...");
+			return true;
 		} catch (Exception e) {
-			e.printStackTrace();
+			System.err.println(e.getMessage());
+			return false;
 		}
 	}
 
-	private void fillLocalArea() {
-
-		//FOUND search-id sha size name
-		if(search.getFilenames().size() > 0){
-			for(int i = 0; i < search.getFilenames().size(); i++){
-				File fileSize = new File(search.getFilenames().get(i)); // Para ir buscar o size
-				FileInputStream file = null;
-				try {
-					file = new FileInputStream(search.getFilenames().get(i));
-				} catch (FileNotFoundException e1) {
-					e1.printStackTrace();
-				}
-
-				String fileID = null;
-				try {
-					fileID = getHexValue(file);
-				} catch (NoSuchAlgorithmException e) {
-					e.printStackTrace();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-
-				local_files.put(fileID, new BackupFile(search.getFilenames().get(i), 1)); // Coloca file na area local
-
-			}
-
-
-		}		
-	}
-
-
-
-	/**
-	 * @param file
-	 * @throws NoSuchAlgorithmException
-	 * @throws IOException
-	 */
-	private String getHexValue(FileInputStream file)
-			throws NoSuchAlgorithmException, IOException {
-		MessageDigest md = MessageDigest.getInstance("SHA-256");
-		byte[] dataBytes = new byte[chunkSize];
-
-		int nread = 0;
-		while ((nread = file.read(dataBytes)) != -1) {
-			md.update(dataBytes, 0, nread);
-		};
-		byte[] mdbytes = md.digest();
-
-		//convert the byte to hex format
-		StringBuffer sb = new StringBuffer();
-		for (int i = 0; i < mdbytes.length; i++) {
-			sb.append(Integer.toString((mdbytes[i] & 0xff) + 0x100, 16).substring(1));
-		}
-
-		return sb.toString();
-	}
 	public static boolean isParsableToInt(String i)
 	{
 		try
@@ -283,9 +310,22 @@ public class MFSS {
 			return false;
 		}
 	}
-	public static void main(String args[]){
-		MFSS.t=Thread.currentThread();
-		new MFSS();		
+
+	private static void clearScreen() {
+		try {
+			if(OSCheck.isWindows())
+				Runtime.getRuntime().exec("cls");
+			if(OSCheck.isMac())
+				Runtime.getRuntime().exec("clear");
+			if(OSCheck.isUnix())
+				Runtime.getRuntime().exec("clear");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}		
+	}
+
+	private static void nl(){
+		System.out.println();
 	}
 }
 
