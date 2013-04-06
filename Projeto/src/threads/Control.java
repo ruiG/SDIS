@@ -24,11 +24,6 @@ public class Control extends Thread{
 		this.joinMCGroup();
 	}	
 
-	public static byte[] CkMessage(Chunk ck, int repdegree){	
-		byte[] message = Message.CHUNK(ck.getFileId(), ck.getChunkNoAsString(), ck.getData()).getBytes();
-		return message;	
-	}
-
 	public void stopMe(){
 		finished = true;
 	}
@@ -103,7 +98,7 @@ public class Control extends Thread{
 	private void parsedGETCHUNK(String fileID, String chunknr){
 		Chunk c=new Chunk(Integer.parseInt(chunknr), fileID);
 		if (c.load()){
-			String toSend= Message.CHUNK(fileID,chunknr,c.getData());
+			byte[] toSend= Message.CHUNK(fileID,chunknr,c.getData());
 			Message.sendMessage(controlSocket, Restore.getmCastGroupAddress(), Restore.getControlPort(), toSend);
 		}		
 	}
@@ -113,8 +108,7 @@ public class Control extends Thread{
 			File f = new File(fileID+"."+i);
 			if(f.exists()){
 				f.delete();
-				String toSend = Message.REMOVED(fileID, Integer.toString(i));
-				Message.sendMessage(controlSocket, mCastGroupAddress, controlPort, toSend);
+			}else{
 				break;
 			}
 			i++;

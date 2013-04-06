@@ -35,7 +35,7 @@ public class DB {
 		selectNumChunksFile = conn.prepareStatement("SELECT numberOfChunks FROM files WHERE files.[fileID]=?");
 		selectFileNameByID = conn.prepareStatement("SELECT fileName FROM files WHERE files.[fileID]=?");
 		selectFileIDByName = conn.prepareStatement("SELECT fileID FROM files WHERE files.[fileName]=?");
-		deleteFilebyName = conn.prepareStatement("DELETE FROM files WHERE fileID=?");
+		deleteFilebyName = conn.prepareStatement("DELETE FROM files WHERE fileName=?");
 
 	}
 
@@ -92,7 +92,7 @@ public class DB {
 	/**
 	 * Retrieves the number of chunks a file by the fileID has
 	 * @param fileID
-	 * @return chunkNo
+	 * @return chunkNo, -1 if not found
 	 */
 	public int getChunkNumberbyFileID(String fileID){
 		int chunkNo = -1;
@@ -117,7 +117,7 @@ public class DB {
 	/**
 	 * Retrieves the fileID of a file by it's file name.
 	 * @param fileName
-	 * @return
+	 * @return NULL if not found
 	 */
 	public String getFileIDbyFileName(String fileName){
 		String fileID = "";
@@ -133,7 +133,7 @@ public class DB {
 			}
 			return fileID;
 		} catch (SQLException e) {
-			System.err.println("Error executing getFileIDbyFileName query");
+			System.err.println("File not Found on database");
 			System.err.println(e.getErrorCode()+" - "+e.getMessage());
 			return null;
 		}		
@@ -142,7 +142,7 @@ public class DB {
 	/**
 	 * Retrieves the file name of a file by it's file ID.
 	 * @param fileID
-	 * @return fileName
+	 * @return fileName, NULL if not found
 	 */
 	public String getFileNamebyFileID(String fileID){
 		String fileName = "";
@@ -171,15 +171,8 @@ public class DB {
 	public void deleteFilebyName(String fileName){
 		try {
 			deleteFilebyName.setString(1, fileName);			
-			ResultSet result = deleteFilebyName.executeQuery();
-
-			try{	
-				result.next();
-				fileName = result.getString("fileName");						
-			}finally{
-				result.close();
-			}
-
+			deleteFilebyName.executeUpdate();
+			
 		} catch (SQLException e) {
 			System.err.println("Error executing Delete on file: "+fileName);
 			System.err.println(e.getErrorCode()+" - "+e.getMessage());			

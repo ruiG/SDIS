@@ -1,7 +1,6 @@
 package threads;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
@@ -37,7 +36,7 @@ public class Backup extends Thread{
 	public void run() {
 		while(!finished){
 			String version="", fileID="", chunknr="", repldeg="";
-			byte[] receiveData = new byte[64000];
+			byte[] receiveData = new byte[65000];
 			DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
 			try {
 				backupSocket.receive(receivePacket);
@@ -49,7 +48,8 @@ public class Backup extends Thread{
 				System.out.println("RECEIVED: " + sentence.substring(0, 20));
 			String[] st = sentence.split("\r\n\r\n");
 			String head = st[0];
-			String b = st[1];
+			int sizeHead = st[0].length() +4;
+			
 			String[] tokens = Message.parseTokensFromString(head);
 			if(tokens[0].equals("PUTCHUNK")){
 				version = tokens[1];
@@ -60,9 +60,11 @@ public class Backup extends Thread{
 					fileID = tokens[2];
 					chunknr = tokens[3];
 					repldeg = tokens[4];
+					byte[] chunkReceive = new byte[receivePacket.getLength() - sizeHead];	
+					Message.readbytes(chunkReceive,receivePacket.getData(),sizeHead);
 					try {
-						parsePUTCHUNK(fileID, chunknr, b.getBytes("US-ASCII"),Integer.parseInt(repldeg));
-					} catch (NumberFormatException | UnsupportedEncodingException e) {
+						parsePUTCHUNK(fileID, chunknr, chunkReceive,Integer.parseInt(repldeg));
+					} catch (NumberFormatException e) {
 						e.printStackTrace();
 					}
 					continue;
@@ -71,17 +73,6 @@ public class Backup extends Thread{
 			}	
 			backupSocket.close();
 		}
-	}
-
-	public byte[] StrMessage(Chunk ck, int repdegree){	
-		byte[] message = Message.STORED(ck.getFileId(), ck.getChunkNoAsString()).getBytes();
-		return message;	
-	}
-
-
-	public static byte[] PutCkMessage(Chunk ck, int repdegree){	
-		byte[] message = Message.PUTCHUNK(ck.getFileId(), ck.getChunkNoAsString(), ck.getRepDegAsChar(), ck.getData()).getBytes();
-		return message;	
 	}
 
 	private void parsePUTCHUNK(String fileID, String chunknr, byte body[], int repdeg){
@@ -93,7 +84,7 @@ public class Backup extends Thread{
 			if(MFSS.debugmode){
 				System.out.println("Saved a chunk number: "+c.getChunkNo());
 			}
-			String toSend = Message.STORED(fileID, chunknr);
+			byte[] toSend = Message.STORED(fileID, chunknr);
 			Message.sendMessage(backupSocket, Control.getmCastGroupAddress(), Control.getControlPort(), toSend);
 			if(MFSS.debugmode){
 				System.out.println("Stored message sent");

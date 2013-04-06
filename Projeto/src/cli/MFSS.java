@@ -15,6 +15,7 @@ import threads.Control;
 import threads.Restore;
 import dataStruct.BackupFile;
 import dataStruct.BackupFile.NoSuchFileException;
+import dataStruct.Message;
 import database.DB;
 
 
@@ -57,11 +58,10 @@ public class MFSS {
 	static DB database;
 
 	//**************State variables******************
-	public volatile static String sentChunk;
-	public volatile static String sentID;
-	public volatile static int numberOfChunksRequested = 0;
-	public volatile static String requestedFileID = "";
-	public volatile static String requestedChunkNr = "";
+	public volatile static String sentChunk = null;
+	public volatile static String sentID = null;
+	public volatile static String requestedFileID = null;
+	public volatile static String requestedChunkNr = null;
 
 	public static void main(String args[]){
 		MFSS.t=Thread.currentThread();
@@ -203,8 +203,11 @@ public class MFSS {
 		if(list != null){
 			if(!list.isEmpty()){
 				for (int i = 0; i < list.size(); i++) {
-					System.out.println("["+list.get(i).get(1)+"]["+list.get(i).get(2)+"]");
+					System.out.println("["+list.get(i).get(0)+"]["+list.get(i).get(2)+"]");
 				}
+				nl();
+				System.out.println("[               [ 1 - Restore file  ]   [ 2 - Delete File   ]                   ]");
+				manageBkFilesAux();
 			}
 			else {
 				nl();
@@ -218,6 +221,91 @@ public class MFSS {
 		} catch (IOException e) {}
 	}
 
+	private static void manageBkFilesAux() {
+		String key = scanner.next();
+		if( key.equals("1") ){
+			while(true){
+				System.out.println("Please input the filename:");
+				String name = scanner.next();
+				String ID = database.getFileIDbyFileName(name);
+				if( ID != null){
+					if(recoverFileFormBackup(name,ID))
+						System.out.println("Restore completed...");
+					else
+						System.err.println("Restore failed...");					
+					return;
+				}
+			}
+		}else if(key.equals("2")){
+			while(true){
+				System.out.println("Please input the filename:");
+				String name = scanner.next();
+				String ID = database.getFileIDbyFileName(name);
+				if( ID != null){
+					deleteFileFromBackup(name,ID);
+					return;
+				}
+			}
+		}		
+	}
+
+	private static boolean recoverFileFormBackup(String name, String iD) {
+		System.out.println("Save as:");
+		String svName = scanner.next();
+		MulticastSocket sk;
+		try {
+			sk = new MulticastSocket();
+			sk.joinGroup(InetAddress.getByName(ip_control));
+			nl();
+			int numbOfChk = database.getChunkNumberbyFileID(iD);
+			requestedFileID = iD;
+			for (int j = 0; j < numbOfChk; j++) {				
+				int timeout = 400, to = 0;
+				requestedChunkNr = Integer.toString(j);				
+				while(to < 5){
+					try{
+						Message.sendMessage(sk, controlGroupAddress, _MCPORT,Message.GETCHUNK(iD, Integer.toString(j)));
+								Thread.sleep(timeout);
+					}catch(InterruptedException ie){
+						System.out.println("Chunk received!");
+						break;
+					}
+					timeout*=2;
+					to++;				
+				}
+				if(to == 5) return false;		
+			}	
+			requestedChunkNr = null;
+			requestedFileID = null;
+			new BackupFile(svName,iD,numbOfChk-1).RegenerateFileFromChunks();
+			return true;
+		} catch (IOException e) {
+			System.err.println("Error joining group: "+ip_backup);
+			return false;
+		}	
+	}
+
+
+
+	private static void deleteFileFromBackup(String name, String iD) {
+		MulticastSocket sk;
+		try {
+			sk = new MulticastSocket();
+			sk.joinGroup(InetAddress.getByName(ip_control));
+			nl();
+			for (int i = 0; i < 3; i++) {
+				Message.sendMessage(sk, controlGroupAddress, _MCPORT,Message.DELETE(iD));
+			}
+			database.deleteFilebyName(name);
+			sk.close();
+			System.out.println("Ending...");
+		} catch (IOException e) {
+			System.err.println("Error joining group: "+ip_backup);
+		}
+	}
+
+
+
 	public static void sendFileToBackup(String filename, int rep_degree) {
 		MulticastSocket sk;
 		try {
@@ -229,7 +317,7 @@ public class MFSS {
 			if(bf.generateChunks()){
 				if(bf.sendChunks(sk, backupGroupAddress, _MDBPORT)){
 					System.out.println("File chunks sent...");
-					database.addFile(bf.getName(), bf.getID(), bf.getNrChunks());
+					database.addFile(bf.getID(),bf.getName(), bf.getNrChunks()+1);
 					System.out.println("File info added to the database...");
 				}					
 				else

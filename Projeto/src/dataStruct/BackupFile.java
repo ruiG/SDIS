@@ -36,14 +36,25 @@ public class BackupFile {
 		chunks.clear();
 	}
 	
+	public BackupFile(String name, String fileID, int nrChunks){
+		this.fileName = name;
+		this.fileID = fileID;
+		this.repDeg = 1;
+		lastModified=-1;
+		this.nrChunks = nrChunks;	
+		chunks=new ArrayList<Chunk>();
+		loadChunks();
+	}
+	
 	public boolean generateChunks(){
 		
 		ArrayList<Chunk> arr = new ArrayList<Chunk>();
 		arr.clear();
 		try{		
 			RandomAccessFile f = new RandomAccessFile(getName(), "r");
-			nrChunks=(int)(length/64000);
-			long rest=length%64000;
+			f.length();
+			nrChunks=(int)(f.length()/64000);
+			long rest=f.length()%64000;
 			
 			for (int i=0;i<nrChunks;i++){
 				byte b[]= new byte[64000];
@@ -60,8 +71,7 @@ public class BackupFile {
 				arr.add(new Chunk(nrChunks, fileID, null, repDeg));
 				f.close();
 			}	
-		}catch(IOException e){
-				e.printStackTrace();
+		}catch(IOException e){				
 				return false;
 			}
 		chunks = arr;
@@ -121,7 +131,7 @@ public class BackupFile {
 		if(chunks.size()!=nrChunks+1)
 			return;
 		try{		
-			File f = new File("a"+getName());
+			File f = new File(getName());
 			FileOutputStream outputStream = new FileOutputStream(f);
 			byte b[]= new byte[64000];
 			for (int i=0;i<nrChunks;i++){

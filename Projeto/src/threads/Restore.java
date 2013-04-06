@@ -1,7 +1,6 @@
 package threads;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
@@ -29,51 +28,56 @@ public class Restore extends Thread{
 	public void run() {
 
 		while(!finished){
-			String version="", fileID="", chunknr="", repldeg="";
-			byte[] receiveData = new byte[64000];
+			String version="", fileID="", chunknr="";
+			byte[] receiveData = new byte[65000];
 			DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
 			try {
 				restoreSocket.receive(receivePacket);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			String sentence = new String( receivePacket.getData(),0,receivePacket.getLength());
-
+			String sentence = new String(receivePacket.getData(),0,receivePacket.getLength());
+			
 			if(MFSS.debugmode)
 				System.out.println("RECEIVED: " + sentence.substring(0, 20));
 
 			String[] st = sentence.split("\r\n\r\n");
-			String head = st[0];
-			String b = st[1];
+			String head = st[0];	
+			int sizeHead = st[0].length() +4;
 			String[] tokens = Message.parseTokensFromString(head);
 
 			if(tokens[0].equals("CHUNK")){
-				if(MFSS.numberOfChunksRequested > 0){
+				if(MFSS.requestedFileID != null){
+								
 					version = tokens[1];
 					if (version.equals(MFSS._VERSIONMAJOR+"."+MFSS._VERSIONMINOR)) {
-						if (!MFSS.debugmode) 
-							System.out.println("Received a Chunk message, parsing...");
+						if (MFSS.debugmode) 
+							System.out.println("Parsing chunk...");
 						fileID = tokens[2];
 						chunknr = tokens[3];
-						repldeg = tokens[4];
+						if(!chunknr.equals(MFSS.requestedChunkNr) || !fileID.equals(MFSS.requestedFileID))
+							continue;	
+						byte[] chunkReceive = new byte[receivePacket.getLength() - sizeHead];	
+						Message.readbytes(chunkReceive,receivePacket.getData(),sizeHead);
 						try {
-							parseCHUNK(fileID, chunknr, b.getBytes("US-ASCII"),Integer.parseInt(repldeg));
-						} catch (NumberFormatException | UnsupportedEncodingException e) {
+							parseCHUNK(fileID, chunknr, chunkReceive);
+							MFSS.t.interrupt();
+						} catch (NumberFormatException e) {
 							e.printStackTrace();
 						}
 						continue;
 					}
 				}
 			}
-
-			restoreSocket.close();
-
 		}
+		restoreSocket.close();
 	}
 
-	private void parseCHUNK(String fileID, String chunknr, byte[] body,	int repdeg) {
+	
+
+	private void parseCHUNK(String fileID, String chunknr, byte[] body) {
 		if(MFSS.requestedChunkNr.equals(chunknr) && MFSS.requestedFileID.equals(fileID)){
-			Chunk c=new Chunk(Integer.parseInt(chunknr), fileID,body,repdeg);
+			Chunk c=new Chunk(Integer.parseInt(chunknr), fileID,body,1);
 			System.out.println("REQUESTED CHUNK CREATED \n");
 			c.save();
 			if(MFSS.debugmode){
