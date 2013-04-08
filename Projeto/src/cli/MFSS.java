@@ -103,7 +103,17 @@ public class MFSS {
 
 
 	private static void parseArgs(String[] args) {
-		// TODO parseArgs		
+		if(args.length > 0){	
+			ip_control = args[0];
+			_MCPORT = Integer.parseInt(args[1]);
+			
+			ip_restore = args[2];
+			_MDRPORT = Integer.parseInt(args[3]);
+			
+			ip_backup = args[4];
+			_MDBPORT = Integer.parseInt(args[5]);
+		
+		}	
 	}
 
 
