@@ -21,6 +21,7 @@ public class Backup extends Thread{
 		Backup.backupGroupAddress = mCastGroupAddress;
 		Backup.backupPort = backupPort;
 		backupSocket = new MulticastSocket(backupPort);
+		backupSocket.setLoopbackMode(true);
 		this.joinMCGroup();
 
 	}

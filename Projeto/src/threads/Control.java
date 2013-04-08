@@ -21,6 +21,7 @@ public class Control extends Thread{
 		Control.mCastGroupAddress = mCastGroupAddress;
 		Control.controlPort = controlPort;	
 		controlSocket = new MulticastSocket(Control.controlPort);
+		controlSocket.setLoopbackMode(true);
 		this.joinMCGroup();
 	}	
 

@@ -266,6 +266,7 @@ public class MFSS {
 		try {
 			sk = new MulticastSocket();
 			sk.joinGroup(InetAddress.getByName(ip_control));
+			sk.setLoopbackMode(true);
 			nl();
 			int numbOfChk = database.getChunkNumberbyFileID(iD);
 			requestedFileID = iD;
@@ -302,6 +303,7 @@ public class MFSS {
 		try {
 			sk = new MulticastSocket();
 			sk.joinGroup(InetAddress.getByName(ip_control));
+			sk.setLoopbackMode(true);
 			nl();
 			for (int i = 0; i < 3; i++) {
 				Message.sendMessage(sk, controlGroupAddress, _MCPORT,Message.DELETE(iD));
@@ -321,6 +323,7 @@ public class MFSS {
 		try {
 			sk = new MulticastSocket();
 			sk.joinGroup(InetAddress.getByName(ip_backup));
+			sk.setLoopbackMode(true);
 			nl();
 			BackupFile bf = new BackupFile(filename, rep_degree);
 

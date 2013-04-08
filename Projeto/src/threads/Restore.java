@@ -20,6 +20,7 @@ public class Restore extends Thread{
 		Restore.restoreGroupAddress = mCastGroupAddress;
 		Restore.restorePort = restorePort;		  
 		restoreSocket = new MulticastSocket(Restore.restorePort);
+		restoreSocket.setLoopbackMode(true);
 		finished = false;
 		this.joinMCGroup();
 	}	
