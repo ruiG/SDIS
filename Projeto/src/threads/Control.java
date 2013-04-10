@@ -44,8 +44,8 @@ public class Control extends Thread{
 			}
 			String sentence = new String( receivePacket.getData(),0,receivePacket.getLength());
 
-			if(MFSS.debugmode)
-				System.out.println("RECEIVED: " + sentence.substring(0, 20));	
+			if(MFSS.debugmode && sentence.length() > 20)
+				System.out.println("RECEIVED IP: "+ receivePacket.getAddress()+ " " + sentence.substring(0, 20));
 
 			String[] st = sentence.split("\r\n\r\n");
 			String head = st[0];
@@ -59,13 +59,13 @@ public class Control extends Thread{
 				}
 				continue;
 			}
-			if(tokens[0].equals("DELETE")){
+			else if(tokens[0].equals("DELETE")){
 				fileID=tokens[1];
 				parsedDELETE(fileID);
 				continue;
 			}
 
-			if(tokens[0].equals("REMOVED")){
+			else if(tokens[0].equals("REMOVED")){
 				version=tokens[1];				
 				if(version.equals(MFSS._VERSIONMAJOR+"."+MFSS._VERSIONMINOR)){
 					fileID=tokens[2];
@@ -75,7 +75,7 @@ public class Control extends Thread{
 				continue;
 			}
 
-			if(MFSS.sentID != null){
+			else if(MFSS.sentID != null){
 				if(tokens[0].equals("STORED")){
 					version=tokens[1];
 					if(version.equals(MFSS._VERSIONMAJOR+"."+MFSS._VERSIONMINOR)){
@@ -85,6 +85,9 @@ public class Control extends Thread{
 					}
 					continue;
 				}
+			}
+			else {
+				System.out.println("incorrect token received from: "+receivePacket.getAddress());
 			}
 
 		}

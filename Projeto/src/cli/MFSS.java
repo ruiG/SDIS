@@ -37,9 +37,9 @@ public class MFSS {
 
 	//*************Private Variables*****************
 
-	static int _MDRPORT = 3002; // Recover
-	static int _MCPORT = 3000; // Control
-	static int _MDBPORT = 3001; // Backup
+	static int _MDRPORT = 8767; // Recover
+	static int _MCPORT = 8765; // Control
+	static int _MDBPORT = 8766; // Backup
 	static InetAddress controlGroupAddress = null;
 	static InetAddress restoreGroupAddress = null;
 	static InetAddress backupGroupAddress = null;
@@ -51,9 +51,9 @@ public class MFSS {
 	static Control control;
 	static Restore restore;
 	static int key;
-	static String ip_control="224.0.0.1";
-	static String ip_restore="224.0.0.2";
-	static String ip_backup="224.0.0.3";
+	static String ip_control="239.0.0.1";
+	static String ip_restore="239.0.0.1";
+	static String ip_backup="239.0.0.1";
 	static Scanner scanner = new Scanner( System.in );
 	static DB database;
 
@@ -306,6 +306,7 @@ public class MFSS {
 			sk.setLoopbackMode(true);
 			nl();
 			for (int i = 0; i < 3; i++) {
+				System.out.println("Sending DELETE no: "+i);
 				Message.sendMessage(sk, controlGroupAddress, _MCPORT,Message.DELETE(iD));
 			}
 			database.deleteFilebyName(name);
@@ -413,7 +414,7 @@ public class MFSS {
 	}
 
 	private static void clearScreen() {
-		try {
+		/*try {
 			if(OSCheck.isWindows())
 				Runtime.getRuntime().exec("cls");
 			if(OSCheck.isMac())
@@ -422,7 +423,7 @@ public class MFSS {
 				Runtime.getRuntime().exec("clear");
 		} catch (IOException e) {
 			e.printStackTrace();
-		}		
+		}		*/
 	}
 
 	private static void nl(){

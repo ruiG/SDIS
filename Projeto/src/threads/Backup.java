@@ -45,14 +45,15 @@ public class Backup extends Thread{
 				e.printStackTrace();
 			}
 			String sentence = new String( receivePacket.getData(),0,receivePacket.getLength());
-			if(MFSS.debugmode)
-				System.out.println("RECEIVED: " + sentence.substring(0, 20));
+			if(MFSS.debugmode && sentence.length() > 20)
+				System.out.println("RECEIVED IP: "+ receivePacket.getAddress()+ " " + sentence.substring(0, 20));
 			String[] st = sentence.split("\r\n\r\n");
 			String head = st[0];
 			int sizeHead = st[0].length() +4;
 			
 			String[] tokens = Message.parseTokensFromString(head);
 			if(tokens[0].equals("PUTCHUNK")){
+				System.out.println("checking version...");
 				version = tokens[1];
 				if (version.equals(MFSS._VERSIONMAJOR+"."+MFSS._VERSIONMINOR)) {
 					if (!MFSS.debugmode) {
@@ -70,10 +71,16 @@ public class Backup extends Thread{
 					}
 					continue;
 				}
+				else {
+					System.out.println("incorrect version received from: "+receivePacket.getAddress());
+				}
 
-			}	
-			backupSocket.close();
+			}else {
+				System.out.println("incorrect token received from: "+receivePacket.getAddress());
+			}
+			
 		}
+		backupSocket.close();
 	}
 
 	private void parsePUTCHUNK(String fileID, String chunknr, byte body[], int repdeg){

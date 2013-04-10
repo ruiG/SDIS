@@ -38,9 +38,9 @@ public class Restore extends Thread{
 				e.printStackTrace();
 			}
 			String sentence = new String(receivePacket.getData(),0,receivePacket.getLength());
-			
-			if(MFSS.debugmode)
-				System.out.println("RECEIVED: " + sentence.substring(0, 20));
+
+			if(MFSS.debugmode && sentence.length() > 20)
+				System.out.println("RECEIVED IP: "+ receivePacket.getAddress()+ " " + sentence.substring(0, 20));
 
 			String[] st = sentence.split("\r\n\r\n");
 			String head = st[0];	
@@ -49,7 +49,7 @@ public class Restore extends Thread{
 
 			if(tokens[0].equals("CHUNK")){
 				if(MFSS.requestedFileID != null){
-								
+
 					version = tokens[1];
 					if (version.equals(MFSS._VERSIONMAJOR+"."+MFSS._VERSIONMINOR)) {
 						if (MFSS.debugmode) 
@@ -70,11 +70,14 @@ public class Restore extends Thread{
 					}
 				}
 			}
+			else{
+				System.out.println("incorrect token received from: "+receivePacket.getAddress());
+			}
 		}
 		restoreSocket.close();
 	}
 
-	
+
 
 	private void parseCHUNK(String fileID, String chunknr, byte[] body) {
 		if(MFSS.requestedChunkNr.equals(chunknr) && MFSS.requestedFileID.equals(fileID)){
@@ -90,7 +93,7 @@ public class Restore extends Thread{
 	protected void joinMCGroup() throws IOException{
 		restoreSocket.joinGroup(restoreGroupAddress);
 	}
-	
+
 	public void closeSocket() throws SocketException{
 		restoreSocket.close();
 	}
@@ -104,7 +107,7 @@ public class Restore extends Thread{
 	public static int getControlPort() {
 		return restorePort;
 	}
-	
+
 
 	//******************Setters 
 
