@@ -96,7 +96,7 @@ public class Control extends Thread{
 
 	private void parsedSTORED(String fileID, String chunknr) {
 		if(chunknr.equals(MFSS.sentChunk) && fileID.equals(MFSS.sentID))
-			MFSS.t.interrupt();	
+			MFSS.t.interrupt();
 	}
 
 	private void parsedGETCHUNK(String fileID, String chunknr){
